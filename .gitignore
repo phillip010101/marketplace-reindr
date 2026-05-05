@@ -1,0 +1,17 @@
+.context/generated/
+
+# Dependencies
+node_modules/
+
+# Local environment
+.env
+.env.*
+!.env.example
+
+# Build and tool output
+dist/
+.astro/
+coverage/
+
+# Logs
+*.log
