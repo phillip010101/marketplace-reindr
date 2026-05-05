@@ -1,0 +1,726 @@
+contracts:
+  - id: CONTEXT_00
+    file: contracts/00-contexto-proyecto.md
+    title: Contexto del proyecto
+    type: product
+    status: active
+    priority: high
+    version: 1.0.0
+    summary: "# 00 â€” Contexto del proyecto "
+    applies_to:
+      - product
+      - architecture
+    depends_on: []
+    related: []
+    agent_read_policy: when_related
+  - id: PRODUCT_01
+    file: contracts/01-product-contract.md
+    title: Product contract
+    type: product
+    status: active
+    priority: high
+    version: 1.0.0
+    summary: "# 01 â€” Product Contract "
+    applies_to:
+      - product
+      - frontend
+      - backend
+    depends_on:
+      - CONTEXT_00
+    related: []
+    agent_read_policy: when_related
+  - id: SCOPE_02
+    file: contracts/02-mvp-scope.md
+    title: MVP scope
+    type: product
+    status: active
+    priority: high
+    version: 1.0.0
+    summary: "# 02 â€” MVP Scope Contract "
+    applies_to:
+      - product
+      - frontend
+      - backend
+      - database
+    depends_on:
+      - PRODUCT_01
+    related: []
+    agent_read_policy: when_related
+  - id: ARCH_03
+    file: contracts/03-architecture-contract.md
+    title: Architecture contract
+    type: architecture
+    status: active
+    priority: high
+    version: 1.0.0
+    summary: "# 03 â€” Architecture Contract "
+    applies_to:
+      - architecture
+      - frontend
+      - backend
+      - database
+    depends_on:
+      - SCOPE_02
+    related: []
+    agent_read_policy: when_related
+  - id: DOMAIN_04
+    file: contracts/04-domain-model-contract.md
+    title: Domain model contract
+    type: domain
+    status: active
+    priority: high
+    version: 1.0.0
+    summary: "# 04 â€” Domain Model Contract "
+    applies_to:
+      - backend
+      - database
+    depends_on:
+      - ARCH_03
+    related: []
+    agent_read_policy: when_related
+  - id: DATA_05
+    file: contracts/05-data-contract.md
+    title: Data contract
+    type: data
+    status: active
+    priority: high
+    version: 1.0.0
+    summary: "# 05 â€” Data Contract "
+    applies_to:
+      - database
+      - backend
+    depends_on:
+      - DOMAIN_04
+    related: []
+    agent_read_policy: when_related
+  - id: API_06
+    file: contracts/06-api-contract.md
+    title: API contract
+    type: api
+    status: active
+    priority: high
+    version: 1.0.0
+    summary: "# 06 - API Contract "
+    applies_to:
+      - backend
+      - frontend
+    depends_on:
+      - DOMAIN_04
+      - DATA_05
+    related: []
+    agent_read_policy: when_related
+  - id: SEO_07
+    file: contracts/07-seo-local-contract.md
+    title: SEO local contract
+    type: seo
+    status: active
+    priority: medium
+    version: 1.0.0
+    summary: "# 07 â€” SEO Local Contract "
+    applies_to:
+      - frontend
+      - content
+    depends_on: []
+    related: []
+    agent_read_policy: when_related
+  - id: LEADS_BILLING_08
+    file: contracts/08-leads-billing-rules.md
+    title: Leads and billing rules
+    type: billing
+    status: active
+    priority: high
+    version: 1.0.0
+    summary: "# 08 â€” Leads & Billing Rules Contract "
+    applies_to:
+      - backend
+      - database
+      - admin
+    depends_on:
+      - DOMAIN_04
+      - DATA_05
+      - API_06
+    related: []
+    agent_read_policy: when_related
+  - id: MONETIZATION_09
+    file: contracts/09-monetization-contract.md
+    title: Monetization contract
+    type: product
+    status: active
+    priority: medium
+    version: 1.0.0
+    summary: "# 09 â€” Monetization Contract "
+    applies_to:
+      - product
+      - admin
+    depends_on: []
+    related: []
+    agent_read_policy: when_related
+  - id: UIUX_10
+    file: contracts/10-ui-ux-contract.md
+    title: UI UX contract
+    type: ux
+    status: active
+    priority: medium
+    version: 1.0.0
+    summary: "# 10 â€” UI/UX Contract "
+    applies_to:
+      - frontend
+      - product
+    depends_on: []
+    related: []
+    agent_read_policy: when_related
+  - id: PROVIDER_PANEL_11
+    file: contracts/11-provider-panel-contract.md
+    title: Provider panel contract
+    type: module
+    status: active
+    priority: high
+    version: 1.1.0
+    summary: "# 11 - Provider Panel Contract "
+    applies_to:
+      - frontend
+      - backend
+    depends_on:
+      - API_06
+      - SECURITY_15
+    related:
+      - AUTH_RBAC_28
+      - STATE_MACHINE_29
+    agent_read_policy: when_related
+  - id: ADMIN_12
+    file: contracts/12-admin-contract.md
+    title: Admin contract
+    type: module
+    status: active
+    priority: high
+    version: 1.0.0
+    summary: "# 12 â€” Admin Contract "
+    applies_to:
+      - frontend
+      - backend
+    depends_on:
+      - API_06
+      - SECURITY_15
+    related: []
+    agent_read_policy: when_related
+  - id: REVIEWS_TRUST_13
+    file: contracts/13-reviews-trust-contract.md
+    title: Reviews and trust contract
+    type: module
+    status: active
+    priority: medium
+    version: 1.0.0
+    summary: "# 13 â€” Reviews & Trust Contract "
+    applies_to:
+      - frontend
+      - backend
+      - admin
+    depends_on: []
+    related: []
+    agent_read_policy: when_related
+  - id: PAYMENTS_FUTURE_14
+    file: contracts/14-payments-future-contract.md
+    title: Payments future contract
+    type: payments
+    status: active
+    priority: medium
+    version: 1.0.0
+    summary: "# 14 â€” Payments Future Contract "
+    applies_to:
+      - backend
+      - database
+      - product
+    depends_on: []
+    related: []
+    agent_read_policy: when_related
+  - id: SECURITY_15
+    file: contracts/15-security-compliance-contract.md
+    title: Security compliance contract
+    type: security
+    status: active
+    priority: critical
+    version: 1.0.0
+    summary: "# 15 â€” Security & Compliance Contract "
+    applies_to:
+      - frontend
+      - backend
+      - database
+    depends_on:
+      - ARCH_03
+      - DOMAIN_04
+    related: []
+    agent_read_policy: when_related
+  - id: ANALYTICS_16
+    file: contracts/16-analytics-observability-contract.md
+    title: Analytics observability contract
+    type: analytics
+    status: active
+    priority: medium
+    version: 1.0.0
+    summary: "# 16 â€” Analytics & Observability Contract "
+    applies_to:
+      - frontend
+      - backend
+      - admin
+    depends_on: []
+    related: []
+    agent_read_policy: when_related
+  - id: TESTING_QA_17
+    file: contracts/17-testing-qa-contract.md
+    title: Testing QA contract
+    type: qa
+    status: active
+    priority: high
+    version: 1.0.0
+    summary: "# 17 â€” Testing & QA Contract "
+    applies_to:
+      - frontend
+      - backend
+      - database
+    depends_on:
+      - API_06
+      - DOMAIN_04
+    related: []
+    agent_read_policy: when_related
+  - id: ROADMAP_18
+    file: contracts/18-phases-roadmap.md
+    title: Phases roadmap
+    type: governance
+    status: active
+    priority: high
+    version: 1.0.0
+    summary: "# 18 - Roadmap por fases (alineado y endurecido) "
+    applies_to:
+      - product
+      - engineering
+    depends_on:
+      - SCOPE_02
+    related: []
+    agent_read_policy: when_related
+  - id: CODEX_PROMPT_19
+    file: contracts/19-codex-master-prompt.md
+    title: Codex master prompt
+    type: governance
+    status: active
+    priority: medium
+    version: 1.0.0
+    summary: "# 19 â€” Codex Master Prompt "
+    applies_to:
+      - engineering
+    depends_on: []
+    related: []
+    agent_read_policy: when_related
+  - id: CODEX_TASKS_20
+    file: contracts/20-codex-task-prompts.md
+    title: Codex task prompts
+    type: governance
+    status: active
+    priority: medium
+    version: 1.0.0
+    summary: "# 20 - Prompts de tareas para Codex (alineados al roadmap) "
+    applies_to:
+      - engineering
+    depends_on: []
+    related: []
+    agent_read_policy: when_related
+  - id: DOD_21
+    file: contracts/21-definition-of-done.md
+    title: Definition of done
+    type: governance
+    status: active
+    priority: high
+    version: 1.0.0
+    summary: "# 21 - Definition of Done (alineado al roadmap) "
+    applies_to:
+      - engineering
+      - qa
+    depends_on:
+      - ROADMAP_18
+      - TESTING_QA_17
+    related: []
+    agent_read_policy: when_related
+  - id: SUMMARY_22
+    file: contracts/22-resumen-implementacion.md
+    title: Resumen implementacion
+    type: governance
+    status: active
+    priority: medium
+    version: 1.0.0
+    summary: "# 22 - Resumen de implementacion (alineado) "
+    applies_to:
+      - engineering
+      - product
+    depends_on: []
+    related: []
+    agent_read_policy: when_related
+  - id: DESALINEACIONES_23
+    file: contracts/23-desalineaciones-contract.md
+    title: Contrato de desalineaciones
+    type: governance
+    status: active
+    priority: high
+    version: 1.0.0
+    summary: "# 23 - Contrato de analisis de desalineaciones "
+    applies_to:
+      - engineering
+      - product
+    depends_on:
+      - DOD_21
+    related: []
+    agent_read_policy: when_related
+  - id: TRAZABILIDAD_24
+    file: contracts/24-matriz-trazabilidad-fase-1.md
+    title: Matriz de trazabilidad fase 1
+    type: governance
+    status: active
+    priority: high
+    version: 1.0.0
+    summary: "# 24 - Matriz de trazabilidad (Fase -1 inicial) "
+    applies_to:
+      - engineering
+      - qa
+    depends_on:
+      - DESALINEACIONES_23
+    related: []
+    agent_read_policy: when_related
+  - id: REPORTE_DESALINEACIONES_25
+    file: contracts/25-reporte-desalineaciones-fase-1.md
+    title: Reporte desalineaciones fase 1
+    type: governance
+    status: active
+    priority: high
+    version: 1.0.0
+    summary: "# 25 - Reporte de desalineaciones (Fase -1) "
+    applies_to:
+      - engineering
+      - product
+    depends_on:
+      - TRAZABILIDAD_24
+    related: []
+    agent_read_policy: when_related
+  - id: PLAN_ALTAS_26
+    file: contracts/26-plan-resolucion-altas.md
+    title: Plan resolucion altas
+    type: governance
+    status: active
+    priority: high
+    version: 1.0.0
+    summary: "# 26 - Plan de resolucion de desalineaciones altas "
+    applies_to:
+      - engineering
+      - product
+    depends_on:
+      - REPORTE_DESALINEACIONES_25
+    related: []
+    agent_read_policy: when_related
+  - id: AUDITORIA_V2_27
+    file: contracts/27-auditoria-integral-v2.md
+    title: Auditoria integral v2
+    type: governance
+    status: active
+    priority: high
+    version: 1.0.0
+    summary: "# 27 - Auditoria integral V2 "
+    applies_to:
+      - engineering
+      - product
+      - architecture
+    depends_on:
+      - PLAN_ALTAS_26
+    related: []
+    agent_read_policy: when_related
+  - id: AUTH_RBAC_28
+    file: contracts/28-auth-rbac-contract.md
+    title: Auth and RBAC Contract
+    type: security
+    status: active
+    priority: critical
+    version: 1.0.0
+    summary: "# 28 - Auth and RBAC Contract "
+    applies_to:
+      - backend
+      - frontend
+      - admin
+    depends_on:
+      - DOMAIN_04
+      - API_06
+      - SECURITY_15
+    related:
+      - PROVIDER_PANEL_11
+      - ADMIN_12
+    agent_read_policy: always_when_touching_module
+  - id: STATE_MACHINE_29
+    file: contracts/29-state-machine-contract.md
+    title: Lead and Opportunity State Machine Contract
+    type: domain
+    status: active
+    priority: high
+    version: 1.0.0
+    summary: "# 29 - Lead and Opportunity State Machine Contract "
+    applies_to:
+      - backend
+      - database
+      - admin
+    depends_on:
+      - DOMAIN_04
+      - LEADS_BILLING_08
+    related:
+      - PROVIDER_PANEL_11
+      - ADMIN_12
+    agent_read_policy: always_when_touching_module
+  - id: DTO_BOUNDARY_30
+    file: contracts/30-public-private-dto-contract.md
+    title: Public and Private DTO Boundary Contract
+    type: api
+    status: active
+    priority: high
+    version: 1.0.0
+    summary: "# 30 - Public and Private DTO Boundary Contract "
+    applies_to:
+      - backend
+      - frontend
+    depends_on:
+      - DATA_05
+      - SECURITY_15
+      - API_06
+    related:
+      - SEO_07
+      - PROVIDER_PANEL_11
+      - ADMIN_12
+    agent_read_policy: always_when_touching_module
+  - id: MIGRATIONS_31
+    file: contracts/31-migrations-versioning-contract.md
+    title: Migrations and Schema Versioning Contract
+    type: data
+    status: active
+    priority: high
+    version: 1.0.0
+    summary: "# 31 - Migrations and Schema Versioning Contract "
+    applies_to:
+      - backend
+      - database
+      - devops
+    depends_on:
+      - DATA_05
+      - DOMAIN_04
+    related:
+      - TESTING_QA_17
+      - DOD_21
+    agent_read_policy: always_when_touching_module
+  - id: NEXT_STEP_32
+    file: contracts/32-next-step-execution-contract.md
+    title: Next Step Execution Contract
+    type: governance
+    status: active
+    priority: high
+    version: 1.0.0
+    summary: "# 32 - Next Step Execution Contract "
+    applies_to:
+      - engineering
+      - backend
+      - frontend
+      - database
+    depends_on:
+      - AUDITORIA_V2_27
+      - AUTH_RBAC_28
+      - STATE_MACHINE_29
+      - DTO_BOUNDARY_30
+      - MIGRATIONS_31
+      - DOD_21
+    related:
+      - LEADS_BILLING_08
+      - API_06
+      - PROVIDER_PANEL_11
+    agent_read_policy: always_when_touching_module
+  - id: ANALISIS_33
+    file: contracts/33-analisis-siguiente-paso-v3.md
+    title: Analisis integral de siguiente paso V3
+    type: governance
+    status: active
+    priority: high
+    version: 1.0.0
+    summary: "# 33 - Analisis integral de siguiente paso V3 "
+    applies_to:
+      - engineering
+      - product
+      - architecture
+    depends_on:
+      - AUDITORIA_V2_27
+      - NEXT_STEP_32
+      - DOD_21
+    related:
+      - AUTH_RBAC_28
+      - STATE_MACHINE_29
+      - DTO_BOUNDARY_30
+      - MIGRATIONS_31
+    agent_read_policy: always_when_touching_module
+  - id: CIERRE_PREDEV_34
+    file: contracts/34-plan-cierre-pre-desarrollo.md
+    title: Plan de cierre pre-desarrollo
+    type: governance
+    status: active
+    priority: high
+    version: 1.0.0
+    summary: "# 34 - Plan de cierre pre-desarrollo "
+    applies_to:
+      - engineering
+      - product
+      - qa
+    depends_on:
+      - ANALISIS_33
+      - NEXT_STEP_32
+      - REPORTE_DESALINEACIONES_25
+      - DOD_21
+    related:
+      - TRAZABILIDAD_24
+      - AUTH_RBAC_28
+      - STATE_MACHINE_29
+      - DTO_BOUNDARY_30
+      - MIGRATIONS_31
+    agent_read_policy: always_when_touching_module
+  - id: READINESS_35
+    file: contracts/35-sprint1-readiness-checklist.md
+    title: Sprint 1 readiness checklist
+    type: governance
+    status: active
+    priority: high
+    version: 1.0.0
+    summary: "# 35 - Sprint 1 readiness checklist "
+    applies_to:
+      - engineering
+      - product
+      - qa
+    depends_on:
+      - CIERRE_PREDEV_34
+      - NEXT_STEP_32
+      - TRAZABILIDAD_24
+      - DOD_21
+    related:
+      - TESTING_QA_17
+      - API_06
+      - MIGRATIONS_31
+    agent_read_policy: always_when_touching_module
+  - id: SLICE1_36
+    file: contracts/36-sprint1-slice-declaration.md
+    title: Sprint 1 first slice declaration
+    type: governance
+    status: active
+    priority: high
+    version: 1.0.0
+    summary: "# 36 - Sprint 1 first slice declaration "
+    applies_to:
+      - engineering
+      - product
+      - qa
+    depends_on:
+      - READINESS_35
+      - NEXT_STEP_32
+      - CIERRE_PREDEV_34
+    related:
+      - API_06
+      - LEADS_BILLING_08
+      - AUTH_RBAC_28
+      - STATE_MACHINE_29
+      - DTO_BOUNDARY_30
+      - MIGRATIONS_31
+      - TESTING_QA_17
+    agent_read_policy: always_when_touching_module
+  - id: PLAN_SLICE1_37
+    file: contracts/37-sprint1-slice-tecnico-plan.md
+    title: Plan tecnico del slice Sprint 1
+    type: governance
+    status: active
+    priority: high
+    version: 1.0.0
+    summary: "# 37 - Plan tecnico del slice Sprint 1 "
+    applies_to:
+      - engineering
+      - backend
+      - frontend
+      - qa
+    depends_on:
+      - SLICE1_36
+      - READINESS_35
+      - NEXT_STEP_32
+      - MIGRATIONS_31
+      - TESTING_QA_17
+    related:
+      - API_06
+      - LEADS_BILLING_08
+      - AUTH_RBAC_28
+      - STATE_MACHINE_29
+      - DTO_BOUNDARY_30
+      - TRAZABILIDAD_24
+    agent_read_policy: always_when_touching_module
+  - id: PR_BREAKDOWN_38
+    file: contracts/38-slice1-pr-breakdown-b1-b2.md
+    title: Sprint 1 slice PR breakdown Batch 1 y 2
+    type: governance
+    status: active
+    priority: high
+    version: 1.0.0
+    summary: "# 38 - Sprint 1 slice PR breakdown Batch 1 y 2 "
+    applies_to:
+      - engineering
+      - backend
+      - qa
+    depends_on:
+      - PLAN_SLICE1_37
+      - SLICE1_36
+      - MIGRATIONS_31
+      - TESTING_QA_17
+    related:
+      - API_06
+      - LEADS_BILLING_08
+      - DTO_BOUNDARY_30
+      - TRAZABILIDAD_24
+    agent_read_policy: always_when_touching_module
+  - id: RUTA_MAESTRA_39
+    file: contracts/39-ruta-desarrollo-operativa-maestra.md
+    title: Ruta de desarrollo operativa maestra
+    type: governance
+    status: active
+    priority: critical
+    version: 1.0.0
+    summary: "# 39 - Ruta de desarrollo operativa maestra "
+    applies_to:
+      - engineering
+      - product
+      - qa
+      - architecture
+    depends_on:
+      - ROADMAP_18
+      - NEXT_STEP_32
+      - READINESS_35
+      - PLAN_SLICE1_37
+      - PR_BREAKDOWN_38
+      - TRAZABILIDAD_24
+      - DOD_21
+    related:
+      - API_06
+      - STATE_MACHINE_29
+      - DTO_BOUNDARY_30
+      - MIGRATIONS_31
+      - TESTING_QA_17
+    agent_read_policy: always_when_touching_module
+  - id: HANDOFF_SLICE1_40
+    file: contracts/40-slice1-handoff-sin-db.md
+    title: Handoff slice 1 para continuar en otro PC
+    type: governance
+    status: active
+    priority: high
+    version: 1.0.0
+    summary: "# 40 - Handoff slice 1 para continuar en otro PC "
+    applies_to:
+      - engineering
+      - qa
+    depends_on:
+      - PLAN_SLICE1_37
+      - PR_BREAKDOWN_38
+      - TRAZABILIDAD_24
+      - RUTA_MAESTRA_39
+    related:
+      - API_06
+      - MIGRATIONS_31
+      - TESTING_QA_17
+    agent_read_policy: always_when_touching_module

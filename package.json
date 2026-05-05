@@ -1,0 +1,12 @@
+{
+  "name": "reindr-marketplace-root",
+  "private": true,
+  "version": "0.1.0",
+  "scripts": {
+    "contract-rag": "pnpm --dir mvp-scaffold contract-rag",
+    "contract-rag:ensure": "pnpm --dir mvp-scaffold contract-rag:ensure",
+    "contract-rag:test": "pnpm --dir mvp-scaffold contract-rag:test",
+    "db:migrate": "pnpm --dir mvp-scaffold db:migrate",
+    "db:migrate:check": "pnpm --dir mvp-scaffold db:migrate:check"
+  }
+}

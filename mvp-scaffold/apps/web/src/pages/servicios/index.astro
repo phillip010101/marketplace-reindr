@@ -1,0 +1,32 @@
+---
+export const prerender = true;
+import { SERVICES } from '../../data/catalog';
+const canonicalUrl = 'http://localhost:4321/servicios';
+---
+
+<html lang="es">
+  <head>
+    <meta charset="utf-8" />
+    <title>Servicios | Reindr Marketplace MVP</title>
+    <meta name="description" content="Explora servicios disponibles para solicitar cotizaciones en tu ciudad." />
+    <link rel="canonical" href={canonicalUrl} />
+    <meta name="viewport" content="width=device-width" />
+  </head>
+  <body>
+    <main style="max-width: 960px; margin: 0 auto; padding: 48px 20px; font-family: system-ui, sans-serif;">
+      <a href="/">&larr; Inicio</a>
+      <h1>Servicios</h1>
+      <p>Selecciona un servicio para ver proveedores y solicitar una cotizacion.</p>
+
+      <div style="display: grid; gap: 12px; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); margin-top: 24px;">
+        {SERVICES.map((service) => (
+          <article style="border: 1px solid #ddd; border-radius: 12px; padding: 16px;">
+            <h2 style="margin-top: 0; font-size: 18px;">{service.name}</h2>
+            <p>{service.description}</p>
+            <a href={`/servicios/${service.slug}`}>Ver detalle</a>
+          </article>
+        ))}
+      </div>
+    </main>
+  </body>
+</html>

@@ -1,0 +1,198 @@
+packs:
+  - id: base-contract-governance
+    title: Base Contract Governance Pack
+    description: Minimal pack for any change touching contracts or architecture.
+    required_contracts:
+      - CONTEXT_00
+      - PRODUCT_01
+      - SCOPE_02
+      - DOD_21
+      - DESALINEACIONES_23
+      - AUDITORIA_V2_27
+    optional_contracts:
+      - ROADMAP_18
+      - TESTING_QA_17
+    critical_rules:
+      - Contracts are source of truth.
+      - Do not implement business logic that contradicts active contracts.
+  - id: lead-compuesto
+    title: Lead compuesto implementation pack
+    description: Use when touching lead creation, related services, or opportunity generation.
+    required_contracts:
+      - DOMAIN_04
+      - DATA_05
+      - API_06
+      - LEADS_BILLING_08
+      - STATE_MACHINE_29
+      - DTO_BOUNDARY_30
+    optional_contracts:
+      - TESTING_QA_17
+      - ANALYTICS_16
+    critical_rules:
+      - requested_service_slugs is the canonical related-services payload.
+      - Every accepted lead transition must be auditable.
+      - No public endpoint may expose lead PII.
+  - id: provider-identity-authz
+    title: Provider identity and authorization pack
+    description: Use when touching provider panel, ownership checks, or private routes.
+    required_contracts:
+      - SECURITY_15
+      - AUTH_RBAC_28
+      - PROVIDER_PANEL_11
+      - API_06
+      - DOMAIN_04
+    optional_contracts:
+      - ADMIN_12
+      - TESTING_QA_17
+    critical_rules:
+      - Provider can only access own opportunities.
+      - Admin-only actions must remain admin-only.
+      - Authorization must run after authentication and before business logic.
+  - id: public-seo
+    title: Public SEO and safe DTO pack
+    description: Use when touching city/service/provider public pages and indexing rules.
+    required_contracts:
+      - SEO_07
+      - UIUX_10
+      - DTO_BOUNDARY_30
+      - DATA_05
+    optional_contracts:
+      - ANALYTICS_16
+      - REVIEWS_TRUST_13
+    critical_rules:
+      - Do not publish thin pages without real value.
+      - Use only public-safe DTO fields on indexed pages.
+      - Preserve canonical and internal-link structure.
+  - id: migration-safety
+    title: Migration safety and schema evolution pack
+    description: Use when modifying schema, constraints, seed data, or migration sequence.
+    required_contracts:
+      - MIGRATIONS_31
+      - DATA_05
+      - DOMAIN_04
+      - DOD_21
+    optional_contracts:
+      - TESTING_QA_17
+      - PLAN_ALTAS_26
+    critical_rules:
+      - No destructive migration without rollback notes.
+      - Preserve domain invariants during staged rollouts.
+      - Keep seed compatible with latest schema and QA checks.
+  - id: next-step-execution
+    title: Next step execution pack
+    description: Use to drive the first implementation sprint after contract hardening.
+    required_contracts:
+      - NEXT_STEP_32
+      - ANALISIS_33
+      - AUDITORIA_V2_27
+      - AUTH_RBAC_28
+      - STATE_MACHINE_29
+      - DTO_BOUNDARY_30
+      - MIGRATIONS_31
+      - DOD_21
+    optional_contracts:
+      - LEADS_BILLING_08
+      - API_06
+      - PROVIDER_PANEL_11
+      - TESTING_QA_17
+    critical_rules:
+      - Start from lead-compuesto flow and close it end-to-end before expanding scope.
+      - No implementation starts if contract-rag validate is red.
+      - Keep contracts and behavior changes in sync within the same change set.
+  - id: pre-development-audit-v3
+    title: Pre-development analysis pack V3
+    description: Use before Sprint 1 to perform full contract consistency analysis.
+    required_contracts:
+      - DESALINEACIONES_23
+      - REPORTE_DESALINEACIONES_25
+      - PLAN_ALTAS_26
+      - AUDITORIA_V2_27
+      - NEXT_STEP_32
+      - ANALISIS_33
+      - CIERRE_PREDEV_34
+      - DOD_21
+    optional_contracts:
+      - TESTING_QA_17
+      - ROADMAP_18
+      - API_06
+    critical_rules:
+      - No feature starts before closing high-severity contract misalignments.
+      - Every detected ambiguity must produce a contract amendment or explicit decision.
+      - Validate all context packs after contract updates.
+  - id: sprint1-readiness
+    title: Sprint 1 readiness pack
+    description: Use to validate all pre-development gates before first implementation slice.
+    required_contracts:
+      - READINESS_35
+      - SLICE1_36
+      - CIERRE_PREDEV_34
+      - NEXT_STEP_32
+      - DOD_21
+      - TRAZABILIDAD_24
+    optional_contracts:
+      - TESTING_QA_17
+      - API_06
+      - MIGRATIONS_31
+    critical_rules:
+      - Do not start feature coding before Gate A and Gate B are green.
+      - Declare first Sprint 1 slice and affected contracts before implementation.
+      - Keep evidence for each readiness item.
+  - id: sprint1-slice-execution-plan
+    title: Sprint 1 slice execution plan pack
+    description: Use before and during implementation of S1-LEAD-COMPUESTO-CORE.
+    required_contracts:
+      - PLAN_SLICE1_37
+      - PR_BREAKDOWN_38
+      - SLICE1_36
+      - READINESS_35
+      - NEXT_STEP_32
+      - API_06
+      - STATE_MACHINE_29
+      - DTO_BOUNDARY_30
+      - MIGRATIONS_31
+      - TESTING_QA_17
+    optional_contracts:
+      - AUTH_RBAC_28
+      - LEADS_BILLING_08
+      - TRAZABILIDAD_24
+    critical_rules:
+      - Do not expand scope beyond S1-LEAD-COMPUESTO-CORE.
+      - Every batch must pass its exit gate before the next batch.
+      - Any business behavior change must update affected contracts in same change set.
+  - id: development-route-master
+    title: Development route master pack
+    description: Use as global operating route to prevent omissions, hardcode drift, and duplication.
+    required_contracts:
+      - RUTA_MAESTRA_39
+      - READINESS_35
+      - PLAN_SLICE1_37
+      - PR_BREAKDOWN_38
+      - TRAZABILIDAD_24
+      - DOD_21
+    optional_contracts:
+      - API_06
+      - STATE_MACHINE_29
+      - DTO_BOUNDARY_30
+      - MIGRATIONS_31
+      - TESTING_QA_17
+    critical_rules:
+      - No PR without RAG Trace Loop completion.
+      - No hardcoded business constants in handlers/pages.
+      - No duplicated core logic without explicit reuse check.
+  - id: slice1-handoff
+    title: Slice 1 handoff pack
+    description: Use when moving ongoing slice work to another machine or team member.
+    required_contracts:
+      - HANDOFF_SLICE1_40
+      - PLAN_SLICE1_37
+      - PR_BREAKDOWN_38
+      - TRAZABILIDAD_24
+      - RUTA_MAESTRA_39
+    optional_contracts:
+      - API_06
+      - MIGRATIONS_31
+      - TESTING_QA_17
+    critical_rules:
+      - Do not mark slice complete without DB-backed integration evidence.
+      - Run resume checklist in strict order.
+      - Keep scope lock to S1-LEAD-COMPUESTO-CORE during handoff.

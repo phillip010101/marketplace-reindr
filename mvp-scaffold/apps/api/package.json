@@ -1,0 +1,26 @@
+{
+  "name": "@reindr/api",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "tsx watch src/index.ts",
+    "typecheck": "tsc --noEmit",
+    "test": "tsx --test src/**/*.test.ts",
+    "db:bootstrap": "tsx src/scripts/bootstrap-db.ts",
+    "db:bootstrap:seed": "tsx src/scripts/bootstrap-db.ts --seed-only",
+    "db:migrate": "tsx src/scripts/migrate.ts",
+    "db:migrate:check": "tsx src/scripts/migrate.ts --check"
+  },
+  "dependencies": {
+    "@hono/node-server": "latest",
+    "hono": "latest",
+    "pg": "latest",
+    "zod": "latest"
+  },
+  "devDependencies": {
+    "@types/node": "latest",
+    "@types/pg": "latest",
+    "tsx": "latest",
+    "typescript": "latest"
+  }
+}

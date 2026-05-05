@@ -1,0 +1,113 @@
+---
+export const prerender = true;
+import { PROVIDERS, getPublicApprovedReviews, getServiceName } from '../../data/catalog';
+import {
+  providerTemplateInlineStyle,
+  resolveProviderTemplateWithFallback
+} from '../../scripts/provider-template';
+
+export async function getStaticPaths() {
+  return PROVIDERS.map((provider) => ({ params: { providerSlug: provider.slug } }));
+}
+
+const providerSlug = Astro.params.providerSlug ?? '';
+const provider = PROVIDERS.find((item) => item.slug === providerSlug);
+const approvedReviews = getPublicApprovedReviews(providerSlug);
+
+if (!provider) {
+  throw new Error(`Provider not found for slug: ${providerSlug}`);
+}
+
+const canonicalUrl = `http://localhost:4321/proveedores/${provider.slug}`;
+const template = resolveProviderTemplateWithFallback(provider.templateId);
+---
+
+<html lang="es">
+  <head>
+    <meta charset="utf-8" />
+    <title>{provider.displayName} | Proveedor en {provider.cityLabel}</title>
+    <meta
+      name="description"
+      content={`${provider.displayName}: ${provider.description}`}
+    />
+    <link rel="canonical" href={canonicalUrl} />
+    <meta name="viewport" content="width=device-width" />
+  </head>
+  <body style={providerTemplateInlineStyle(template)}>
+    <main
+      data-provider-template={template.id}
+      data-provider-slug={provider.slug}
+      style="max-width: 960px; margin: 0 auto; padding: 48px 20px; font-family: var(--provider-font);"
+    >
+      <a href="/servicios">&larr; Servicios</a>
+      <h1>{provider.displayName}</h1>
+      <p>{provider.description}</p>
+      <p><strong>Ciudad:</strong> {provider.cityLabel}</p>
+      <p id="provider-template-label" style="font-size:13px; margin-top:6px;">Template: {template.name}</p>
+
+      <section style="margin-top: 24px; border: 1px solid var(--provider-border); border-radius: 12px; padding: 14px; background: var(--provider-card-bg);">
+        <h2>Servicios</h2>
+        <ul>
+          {provider.services.map((serviceSlug) => (
+            <li>
+              <a href={`/bogota/${serviceSlug}`} style="color: var(--provider-accent);">{getServiceName(serviceSlug)}</a>
+            </li>
+          ))}
+        </ul>
+      </section>
+
+      <section style="margin-top: 24px; border: 1px solid var(--provider-border); border-radius: 12px; padding: 14px; background: var(--provider-card-bg);">
+        <h2>Resenas verificadas</h2>
+        {approvedReviews.length === 0 ? (
+          <p>Este proveedor aun no tiene resenas publicadas.</p>
+        ) : (
+          <ul style="display: grid; gap: 12px; padding-left: 20px;">
+            {approvedReviews.map((review) => (
+              <li>
+                <strong>{review.title}</strong> ({review.rating}/5)
+                <p style="margin: 6px 0;">{review.body}</p>
+                <small>{review.authorLabel} - {review.createdAt}</small>
+              </li>
+            ))}
+          </ul>
+        )}
+      </section>
+
+      <section style="margin-top: 24px; border: 1px solid var(--provider-border); border-radius: 12px; padding: 16px; background: var(--provider-card-bg);">
+        <h2>Solicita cotizacion</h2>
+        <p>
+          Inicia por el servicio principal para enviar una sola solicitud y conectar servicios complementarios.
+        </p>
+        <a href={`/bogota/${provider.services[0]}`} style="color: var(--provider-accent);">Ir al formulario</a>
+      </section>
+    </main>
+
+    <script>
+      import {
+        applyProviderTemplateToDocument,
+        resolveProviderTemplateWithFallback
+      } from '../../scripts/provider-template';
+
+      const providerRoot = document.querySelector<HTMLElement>('main[data-provider-slug]');
+      const providerSlug = providerRoot?.dataset.providerSlug ?? '';
+
+      async function syncProviderTemplateFromApi() {
+        if (!providerSlug) return;
+        try {
+          const response = await fetch(`/api/providers/${encodeURIComponent(providerSlug)}`);
+          if (!response.ok) return;
+          const payload = await response.json().catch(() => null);
+          const templateId = String(payload?.data?.template_id ?? '').trim();
+          if (!templateId) return;
+
+          const template = resolveProviderTemplateWithFallback(templateId);
+          applyProviderTemplateToDocument(template);
+        } catch {
+          // Keep static fallback template when API is unavailable.
+        }
+      }
+
+      syncProviderTemplateFromApi();
+    </script>
+  </body>
+</html>

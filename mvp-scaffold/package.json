@@ -1,0 +1,24 @@
+{
+  "name": "reindr-marketplace-mvp",
+  "private": true,
+  "version": "0.1.0",
+  "scripts": {
+    "postinstall": "node ./scripts/contract-rag-ensure.cjs",
+    "predev": "pnpm contract-rag:ensure",
+    "pretypecheck": "pnpm contract-rag:ensure",
+    "pretest": "pnpm contract-rag:ensure",
+    "dev": "pnpm --parallel --filter @reindr/web --filter @reindr/api dev",
+    "dev:web": "pnpm --filter @reindr/web dev",
+    "dev:api": "pnpm --filter @reindr/api dev",
+    "typecheck": "pnpm -r typecheck",
+    "test": "pnpm -r test",
+    "CI-typecheck-test-smoke": "pnpm contract-rag validate && pnpm typecheck && pnpm test",
+    "db:migrate": "pnpm --filter @reindr/api db:migrate",
+    "db:migrate:check": "pnpm --filter @reindr/api db:migrate:check",
+    "contract-rag": "npm.cmd --prefix ../tools/contract-rag run cli --",
+    "contract-rag:ensure": "node ./scripts/contract-rag-ensure.cjs",
+    "contract-rag:test": "npm.cmd --prefix ../tools/contract-rag run test"
+  },
+  "packageManager": "pnpm@9.0.0",
+  "devDependencies": {}
+}

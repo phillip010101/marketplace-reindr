@@ -1,0 +1,255 @@
+---
+export const prerender = true;
+import { PROVIDER_TEMPLATES } from '../../../data/provider-templates';
+const canonicalUrl = 'http://localhost:4321/panel/perfil';
+---
+
+<html lang="es">
+  <head>
+    <meta charset="utf-8" />
+    <title>Perfil proveedor | Reindr Marketplace MVP</title>
+    <meta name="description" content="Gestion de perfil provider: datos publicos y contacto operativo." />
+    <link rel="canonical" href={canonicalUrl} />
+    <meta name="viewport" content="width=device-width" />
+  </head>
+  <body>
+    <main style="max-width: 980px; margin: 0 auto; padding: 40px 20px; font-family: system-ui, sans-serif;">
+      <header style="display:flex; justify-content:space-between; align-items:center; gap:16px; flex-wrap:wrap;">
+        <h1 style="margin:0;">Perfil provider</h1>
+        <nav style="display:flex; gap:10px; flex-wrap:wrap; align-items:center;">
+          <a href="/panel">Dashboard</a>
+          <a href="/panel/perfil">Perfil</a>
+          <a href="/panel/leads">Leads</a>
+          <button id="logout-btn" type="button">Cerrar sesion</button>
+        </nav>
+      </header>
+
+      <p style="margin-top:8px;">Actualiza solo tu perfil autenticado con token bearer guardado en el panel.</p>
+
+      <section style="margin-top:18px; border:1px solid #ddd; border-radius:14px; padding:16px;">
+        <form id="provider-profile-form" style="display:grid; gap:10px;">
+          <label>
+            Nombre comercial
+            <input name="display_name" required />
+          </label>
+          <label>
+            Descripcion
+            <textarea name="description" rows="4"></textarea>
+          </label>
+          <div style="display:grid; grid-template-columns:repeat(auto-fit,minmax(220px,1fr)); gap:10px;">
+            <label>
+              Telefono
+              <input name="phone" />
+            </label>
+            <label>
+              WhatsApp
+              <input name="whatsapp" />
+            </label>
+          </div>
+          <label>
+            Web
+            <input name="website_url" type="url" placeholder="https://..." />
+          </label>
+          <div style="display:grid; grid-template-columns:repeat(auto-fit,minmax(220px,1fr)); gap:10px;">
+            <label>
+              Logo URL
+              <input name="logo_url" type="url" placeholder="https://..." />
+            </label>
+            <label>
+              Cover URL
+              <input name="cover_url" type="url" placeholder="https://..." />
+            </label>
+          </div>
+          <label>
+            Plantilla publica
+            <select name="template_id" required>
+              {PROVIDER_TEMPLATES.map((template) => (
+                <option value={template.id}>{template.name}</option>
+              ))}
+            </select>
+          </label>
+          <div style="display:flex; gap:10px; flex-wrap:wrap;">
+            <button type="button" id="load-profile-btn">Recargar perfil</button>
+            <button type="submit">Guardar cambios</button>
+          </div>
+        </form>
+        <p id="profile-status" style="margin:12px 0 0; font-size:14px;"></p>
+      </section>
+
+      <section style="margin-top:18px; border:1px solid #ddd; border-radius:14px; padding:16px;">
+        <h2 style="margin-top:0;">Vista previa de plantilla</h2>
+        <p style="margin-top:0;">Previsualiza combinacion de fuente, color y fondo antes de guardar.</p>
+        <article
+          id="template-preview-card"
+          style="--provider-font: 'Segoe UI', sans-serif; --provider-bg-start:#f7f7f7; --provider-bg-end:#e8e8e8; --provider-text:#1f1f1f; --provider-accent:#2f2f2f; --provider-card-bg:rgba(255,255,255,0.85); --provider-border:#c9c9c9; border:1px solid var(--provider-border); border-radius:12px; padding:16px; background:linear-gradient(150deg,var(--provider-bg-start),var(--provider-bg-end)); color:var(--provider-text); font-family:var(--provider-font);"
+        >
+          <p id="template-preview-name" style="margin:0; font-size:12px; text-transform:uppercase; letter-spacing:.08em;">Template</p>
+          <h3 style="margin:8px 0;">Nombre Comercial</h3>
+          <p style="margin:0 0 10px;">Descripcion breve de ejemplo para visualizar tono y contraste.</p>
+          <a href="#" style="color:var(--provider-accent);">Enlace de ejemplo</a>
+          <div style="margin-top:12px; background:var(--provider-card-bg); border:1px solid var(--provider-border); border-radius:10px; padding:10px;">
+            Tarjeta secundaria de contenido
+          </div>
+        </article>
+      </section>
+    </main>
+
+    <script id="provider-templates-json" type="application/json" is:inline>{JSON.stringify(PROVIDER_TEMPLATES)}</script>
+
+    <script>
+      import {
+        apiRequest,
+        clearStoredAccessToken,
+        ensureProviderSession,
+        providerAuthHeaders
+      } from '../../../scripts/provider-panel-client';
+
+      type ProviderProfilePayload = {
+        id?: string;
+        slug?: string;
+        display_name?: string;
+        description?: string | null;
+        phone?: string | null;
+        whatsapp?: string | null;
+        website_url?: string | null;
+        logo_url?: string | null;
+        cover_url?: string | null;
+        template_id?: string | null;
+      };
+
+      type ProviderTemplate = {
+        id: string;
+        name: string;
+        fontStack: string;
+        bgStart: string;
+        bgEnd: string;
+        textColor: string;
+        accentColor: string;
+        cardBackground: string;
+        borderColor: string;
+      };
+
+      const form = document.querySelector<HTMLFormElement>('#provider-profile-form');
+      const templateSelect = form?.elements?.namedItem('template_id') as HTMLSelectElement | null;
+      const loadButton = document.querySelector<HTMLButtonElement>('#load-profile-btn');
+      const logoutButton = document.querySelector<HTMLButtonElement>('#logout-btn');
+      const statusEl = document.querySelector<HTMLElement>('#profile-status');
+      const templatePreviewCard = document.querySelector<HTMLElement>('#template-preview-card');
+      const templatePreviewName = document.querySelector<HTMLElement>('#template-preview-name');
+      const templatesJson = document.querySelector<HTMLScriptElement>('#provider-templates-json');
+      const providerTemplates = JSON.parse(templatesJson?.textContent ?? '[]') as ProviderTemplate[];
+
+      function setStatus(message: string, tone: 'neutral' | 'error' | 'ok' = 'neutral') {
+        if (!statusEl) return;
+        statusEl.textContent = message;
+        statusEl.style.color = tone === 'error' ? '#a40000' : tone === 'ok' ? '#0b5d1e' : '#333';
+      }
+
+      function applyTemplatePreview(templateId: string | null | undefined) {
+        if (!templatePreviewCard) return;
+        const selected =
+          providerTemplates.find((template) => template.id === templateId) ??
+          providerTemplates[0];
+        if (!selected) return;
+
+        templatePreviewCard.style.setProperty('--provider-font', selected.fontStack);
+        templatePreviewCard.style.setProperty('--provider-bg-start', selected.bgStart);
+        templatePreviewCard.style.setProperty('--provider-bg-end', selected.bgEnd);
+        templatePreviewCard.style.setProperty('--provider-text', selected.textColor);
+        templatePreviewCard.style.setProperty('--provider-accent', selected.accentColor);
+        templatePreviewCard.style.setProperty('--provider-card-bg', selected.cardBackground);
+        templatePreviewCard.style.setProperty('--provider-border', selected.borderColor);
+        if (templatePreviewName) templatePreviewName.textContent = `Template: ${selected.name}`;
+      }
+
+      function fillForm(profile: ProviderProfilePayload) {
+        const set = (name: string, value: string | null | undefined) => {
+          const field = form?.elements?.namedItem(name);
+          if (field && 'value' in field) field.value = value ?? '';
+        };
+        set('display_name', profile.display_name);
+        set('description', profile.description);
+        set('phone', profile.phone);
+        set('whatsapp', profile.whatsapp);
+        set('website_url', profile.website_url);
+        set('logo_url', profile.logo_url);
+        set('cover_url', profile.cover_url);
+        set('template_id', profile.template_id);
+        applyTemplatePreview(profile.template_id);
+      }
+
+      async function loadProfile() {
+        const session = await ensureProviderSession({
+          redirectToLogin: true
+        });
+        if (!session.ok) return;
+
+        const result = await apiRequest('/api/provider/me', {
+          headers: {
+            ...providerAuthHeaders()
+          }
+        });
+
+        if (!result.ok) {
+          setStatus('No se pudo cargar perfil. Verifica sesion provider.', 'error');
+          return;
+        }
+
+        fillForm((result.data ?? {}) as ProviderProfilePayload);
+        setStatus('Perfil cargado.', 'ok');
+      }
+
+      loadButton?.addEventListener('click', () => {
+        loadProfile();
+      });
+      templateSelect?.addEventListener('change', () => {
+        applyTemplatePreview(templateSelect.value);
+      });
+
+      logoutButton?.addEventListener('click', () => {
+        clearStoredAccessToken();
+        window.location.href = '/panel/login';
+      });
+
+      form?.addEventListener('submit', async (event) => {
+        event.preventDefault();
+        const session = await ensureProviderSession({
+          redirectToLogin: true
+        });
+        if (!session.ok) return;
+
+        const formData = new FormData(form);
+        const payload = {
+          display_name: String(formData.get('display_name') ?? '').trim(),
+          description: String(formData.get('description') ?? '').trim(),
+          phone: String(formData.get('phone') ?? '').trim(),
+          whatsapp: String(formData.get('whatsapp') ?? '').trim(),
+          website_url: String(formData.get('website_url') ?? '').trim(),
+          logo_url: String(formData.get('logo_url') ?? '').trim(),
+          cover_url: String(formData.get('cover_url') ?? '').trim(),
+          template_id: String(formData.get('template_id') ?? '').trim()
+        };
+
+        const result = await apiRequest('/api/provider/me', {
+          method: 'PATCH',
+          headers: {
+            'Content-Type': 'application/json',
+            ...providerAuthHeaders()
+          },
+          body: JSON.stringify(payload)
+        });
+
+        if (!result.ok) {
+          setStatus('No se pudo guardar perfil. Revisa datos y sesion.', 'error');
+          return;
+        }
+
+        fillForm((result.data ?? payload) as ProviderProfilePayload);
+        setStatus('Perfil actualizado correctamente.', 'ok');
+      });
+
+      applyTemplatePreview(templateSelect?.value);
+      loadProfile();
+    </script>
+  </body>
+</html>

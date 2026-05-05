@@ -1,0 +1,271 @@
+---
+export const prerender = false;
+const opportunityIdParam = Astro.params.opportunityId ?? '';
+const canonicalUrl = `http://localhost:4321/panel/leads/${opportunityIdParam}`;
+---
+
+<html lang="es">
+  <head>
+    <meta charset="utf-8" />
+    <title>Detalle lead provider | Reindr Marketplace MVP</title>
+    <meta name="description" content="Detalle de oportunidad provider: estado, contacto y cotizacion." />
+    <link rel="canonical" href={canonicalUrl} />
+    <meta name="viewport" content="width=device-width" />
+    <meta id="opportunity-id-meta" data-opportunity-id={opportunityIdParam} />
+  </head>
+  <body>
+    <main style="max-width: 980px; margin: 0 auto; padding: 40px 20px; font-family: system-ui, sans-serif;">
+      <header style="display:flex; justify-content:space-between; align-items:center; gap:16px; flex-wrap:wrap;">
+        <h1 style="margin:0;">Detalle de oportunidad</h1>
+        <nav style="display:flex; gap:10px; flex-wrap:wrap; align-items:center;">
+          <a href="/panel">Dashboard</a>
+          <a href="/panel/perfil">Perfil</a>
+          <a href="/panel/leads">Leads</a>
+          <button id="logout-btn" type="button">Cerrar sesion</button>
+        </nav>
+      </header>
+
+      <p id="detail-status" style="margin-top:8px; font-size:14px;"></p>
+
+      <section style="margin-top:14px; border:1px solid #ddd; border-radius:14px; padding:16px;">
+        <h2 style="margin-top:0;">Datos del lead</h2>
+        <dl id="lead-detail-grid" style="display:grid; grid-template-columns:repeat(auto-fit,minmax(220px,1fr)); gap:10px;">
+          <div><dt>Codigo</dt><dd id="lead-code">-</dd></div>
+          <div><dt>Estado</dt><dd id="lead-status">-</dd></div>
+          <div><dt>Servicio</dt><dd id="lead-service">-</dd></div>
+          <div><dt>Ciudad</dt><dd id="lead-city">-</dd></div>
+          <div><dt>Contacto</dt><dd id="lead-contact">-</dd></div>
+          <div><dt>Precio lead</dt><dd id="lead-price">-</dd></div>
+        </dl>
+        <p id="lead-description" style="margin-top:12px;">-</p>
+      </section>
+
+      <section style="margin-top:14px; border:1px solid #ddd; border-radius:14px; padding:16px;">
+        <h2 style="margin-top:0;">Actualizar estado</h2>
+        <form id="status-form" style="display:grid; gap:10px; max-width:460px;">
+          <label>
+            Nuevo estado
+            <select name="status" required>
+              <option value="">Selecciona...</option>
+            </select>
+          </label>
+          <label>
+            Nota
+            <textarea name="note" rows="3"></textarea>
+          </label>
+          <button type="submit">Guardar estado</button>
+        </form>
+      </section>
+
+      <section style="margin-top:14px; border:1px solid #ddd; border-radius:14px; padding:16px;">
+        <h2 style="margin-top:0;">Registrar cotizacion</h2>
+        <p id="quote-hint" style="margin-top:0; font-size:14px; color:#333;"></p>
+        <form id="quote-form" style="display:grid; gap:10px; max-width:460px;">
+          <label>
+            Monto
+            <input name="amount" type="number" min="1" required />
+          </label>
+          <label>
+            Moneda
+            <input name="currency" value="COP" maxlength="3" required />
+          </label>
+          <label>
+            Tiempo estimado
+            <input name="estimated_delivery_time" placeholder="7 dias habiles" />
+          </label>
+          <label>
+            Mensaje
+            <textarea name="message" rows="3"></textarea>
+          </label>
+          <button type="submit">Enviar cotizacion</button>
+        </form>
+      </section>
+    </main>
+
+    <script>
+      import {
+        apiRequest,
+        clearStoredAccessToken,
+        ensureProviderSession,
+        formatCopAmount,
+        providerAuthHeaders,
+        statusLabel
+      } from '../../../scripts/provider-panel-client';
+
+      type ProviderLeadDetail = {
+        lead_public_code?: string;
+        opportunity_status?: string;
+        service_slug?: string;
+        city_slug?: string;
+        client_name?: string;
+        client_phone?: string;
+        client_email?: string;
+        lead_price?: number;
+        lead_description?: string;
+        allowed_next_statuses?: string[];
+      };
+
+      const opportunityMeta = document.querySelector<HTMLMetaElement>('#opportunity-id-meta');
+      const opportunityId = opportunityMeta?.dataset.opportunityId ?? '';
+
+      const statusEl = document.querySelector<HTMLElement>('#detail-status');
+      const statusForm = document.querySelector<HTMLFormElement>('#status-form');
+      const statusSelect = statusForm?.querySelector<HTMLSelectElement>('select[name="status"]') ?? null;
+      const quoteForm = document.querySelector<HTMLFormElement>('#quote-form');
+      const quoteHint = document.querySelector<HTMLElement>('#quote-hint');
+      const logoutButton = document.querySelector<HTMLButtonElement>('#logout-btn');
+
+      function setStatus(message: string, tone: 'neutral' | 'error' | 'ok' = 'neutral') {
+        if (!statusEl) return;
+        statusEl.textContent = message;
+        statusEl.style.color = tone === 'error' ? '#a40000' : tone === 'ok' ? '#0b5d1e' : '#333';
+      }
+
+      function assignText(id: string, value: string | undefined) {
+        const node = document.querySelector<HTMLElement>(id);
+        if (node) node.textContent = value ?? '-';
+      }
+
+      function renderStatusOptions(statuses: string[]) {
+        if (!statusSelect) return;
+        const validStatuses = Array.isArray(statuses) ? statuses : [];
+        const options = validStatuses
+          .map((status) => `<option value="${status}">${statusLabel(status)}</option>`)
+          .join('');
+        statusSelect.innerHTML = `<option value="">Selecciona...</option>${options}`;
+        statusSelect.disabled = validStatuses.length === 0;
+      }
+
+      function setQuoteFormEnabled(enabled: boolean) {
+        const controls = quoteForm?.querySelectorAll<HTMLInputElement | HTMLTextAreaElement | HTMLButtonElement>(
+          'input, textarea, button'
+        );
+        controls?.forEach((control) => {
+          control.disabled = !enabled;
+        });
+        if (!quoteHint) return;
+        quoteHint.textContent = enabled
+          ? 'Puedes cotizar esta oportunidad.'
+          : 'La cotizacion solo se habilita cuando la oportunidad esta en estado Contactado.';
+      }
+
+      function renderDetail(data: ProviderLeadDetail) {
+        assignText('#lead-code', data.lead_public_code);
+        assignText('#lead-status', statusLabel(data.opportunity_status ?? ''));
+        assignText('#lead-service', data.service_slug);
+        assignText('#lead-city', data.city_slug);
+        assignText('#lead-contact', `${data.client_name} | ${data.client_phone} | ${data.client_email}`);
+        assignText('#lead-price', formatCopAmount(Number(data.lead_price ?? 0)));
+        assignText('#lead-description', data.lead_description || '-');
+        const allowedNextStatuses = data.allowed_next_statuses ?? [];
+        renderStatusOptions(allowedNextStatuses);
+        setQuoteFormEnabled(allowedNextStatuses.includes('quoted'));
+      }
+
+      async function loadDetail() {
+        if (!opportunityId) {
+          setStatus('URL de oportunidad invalida. Falta el identificador.', 'error');
+          return;
+        }
+
+        const session = await ensureProviderSession({
+          redirectToLogin: true
+        });
+        if (!session.ok) return;
+
+        const result = await apiRequest(`/api/provider/leads/${encodeURIComponent(opportunityId)}`, {
+          headers: {
+            ...providerAuthHeaders()
+          }
+        });
+
+        if (!result.ok) {
+          setStatus('No se pudo cargar detalle. Verifica sesion/ownership.', 'error');
+          renderStatusOptions([]);
+          setQuoteFormEnabled(false);
+          return;
+        }
+
+        renderDetail((result.data ?? {}) as ProviderLeadDetail);
+        setStatus(`Detalle cargado para oportunidad ${opportunityId}.`, 'ok');
+      }
+
+      statusForm?.addEventListener('submit', async (event) => {
+        event.preventDefault();
+        const session = await ensureProviderSession({
+          redirectToLogin: true
+        });
+        if (!session.ok) return;
+
+        const formData = new FormData(statusForm);
+        const payload = {
+          status: String(formData.get('status') ?? ''),
+          note: String(formData.get('note') ?? '').trim()
+        };
+        if (!payload.status) {
+          setStatus('Debes seleccionar un estado permitido antes de guardar.', 'error');
+          return;
+        }
+
+        const result = await apiRequest(`/api/provider/leads/${encodeURIComponent(opportunityId)}/status`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            ...providerAuthHeaders()
+          },
+          body: JSON.stringify(payload)
+        });
+
+        if (!result.ok) {
+          setStatus('No se pudo actualizar estado. Revisa transicion permitida.', 'error');
+          return;
+        }
+
+        setStatus(`Estado actualizado a ${payload.status}.`, 'ok');
+        await loadDetail();
+      });
+
+      quoteForm?.addEventListener('submit', async (event) => {
+        event.preventDefault();
+        const session = await ensureProviderSession({
+          redirectToLogin: true
+        });
+        if (!session.ok) return;
+
+        const formData = new FormData(quoteForm);
+        const payload = {
+          amount: Number(formData.get('amount') ?? 0),
+          currency: String(formData.get('currency') ?? 'COP').trim().toUpperCase(),
+          estimated_delivery_time: String(formData.get('estimated_delivery_time') ?? '').trim(),
+          message: String(formData.get('message') ?? '').trim()
+        };
+
+        const result = await apiRequest(`/api/provider/leads/${encodeURIComponent(opportunityId)}/quote`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            ...providerAuthHeaders()
+          },
+          body: JSON.stringify(payload)
+        });
+
+        if (!result.ok) {
+          setStatus('No se pudo registrar cotizacion. Revisa estado actual de la oportunidad.', 'error');
+          return;
+        }
+
+        setStatus(`Cotizacion enviada por ${formatCopAmount(payload.amount)}.`, 'ok');
+        await loadDetail();
+      });
+
+      logoutButton?.addEventListener('click', () => {
+        clearStoredAccessToken();
+        window.location.href = '/panel/login';
+      });
+
+      renderStatusOptions([]);
+      setQuoteFormEnabled(false);
+      loadDetail();
+    </script>
+  </body>
+</html>

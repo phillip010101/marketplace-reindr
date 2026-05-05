@@ -1,0 +1,56 @@
+---
+export const prerender = true;
+import { SERVICES, getProvidersForServiceInCity, getServiceBySlug } from '../../data/catalog';
+
+export async function getStaticPaths() {
+  return SERVICES.map((service) => ({ params: { service: service.slug } }));
+}
+
+const { service } = Astro.params;
+const serviceSlug = service ?? 'cajas-personalizadas';
+const serviceItem = getServiceBySlug(serviceSlug);
+const providers = getProvidersForServiceInCity('bogota', serviceSlug);
+const canonicalUrl = `http://localhost:4321/servicios/${serviceSlug}`;
+---
+
+<html lang="es">
+  <head>
+    <meta charset="utf-8" />
+    <title>{serviceItem?.name ?? serviceSlug} | Reindr Marketplace MVP</title>
+    <meta
+      name="description"
+      content={`Explora proveedores y contexto para ${serviceItem?.name ?? serviceSlug}.`}
+    />
+    <link rel="canonical" href={canonicalUrl} />
+    <meta name="viewport" content="width=device-width" />
+  </head>
+  <body>
+    <main style="max-width: 960px; margin: 0 auto; padding: 48px 20px; font-family: system-ui, sans-serif;">
+      <a href="/servicios">&larr; Todos los servicios</a>
+      <h1>{serviceItem?.name ?? serviceSlug}</h1>
+      <p>{serviceItem?.description ?? 'Servicio en catalogo.'}</p>
+
+      <section style="margin-top: 24px;">
+        <h2>Ciudad activa</h2>
+        <p>
+          <a href={`/bogota/${serviceSlug}`}>Ver {serviceItem?.name ?? serviceSlug} en Bogota</a>
+        </p>
+      </section>
+
+      <section style="margin-top: 24px;">
+        <h2>Proveedores en Bogota</h2>
+        {providers.length === 0 ? (
+          <p>Este servicio aun no tiene proveedores activos publicados.</p>
+        ) : (
+          <ul>
+            {providers.map((provider) => (
+              <li>
+                <a href={`/proveedores/${provider.slug}`}>{provider.displayName}</a>
+              </li>
+            ))}
+          </ul>
+        )}
+      </section>
+    </main>
+  </body>
+</html>

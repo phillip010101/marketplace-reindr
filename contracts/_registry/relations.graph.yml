@@ -1,0 +1,549 @@
+relations:
+  - from: PRODUCT_01
+    to: CONTEXT_00
+    type: depends_on
+    reason: Product scope derives from project context.
+  - from: SCOPE_02
+    to: PRODUCT_01
+    type: depends_on
+    reason: MVP scope operationalizes product contract.
+  - from: ARCH_03
+    to: SCOPE_02
+    type: depends_on
+    reason: Architecture follows MVP scope boundaries.
+  - from: DOMAIN_04
+    to: ARCH_03
+    type: depends_on
+    reason: Domain model follows architecture responsibility split.
+  - from: DATA_05
+    to: DOMAIN_04
+    type: depends_on
+    reason: Data rules enforce domain invariants.
+  - from: API_06
+    to: DOMAIN_04
+    type: depends_on
+    reason: API behavior maps domain entities and statuses.
+  - from: API_06
+    to: DATA_05
+    type: depends_on
+    reason: API payload boundaries depend on data privacy rules.
+  - from: SECURITY_15
+    to: API_06
+    type: depends_on
+    reason: Security controls are enforced through API guards.
+  - from: AUTH_RBAC_28
+    to: SECURITY_15
+    type: depends_on
+    reason: RBAC is a concrete enforcement layer of security contract.
+  - from: AUTH_RBAC_28
+    to: API_06
+    type: depends_on
+    reason: Route-level role and ownership checks apply to API endpoints.
+  - from: AUTH_RBAC_28
+    to: DOMAIN_04
+    type: depends_on
+    reason: Ownership decisions use provider/account domain entities.
+  - from: STATE_MACHINE_29
+    to: DOMAIN_04
+    type: depends_on
+    reason: Transition matrix is defined on lead and opportunity states.
+  - from: STATE_MACHINE_29
+    to: LEADS_BILLING_08
+    type: depends_on
+    reason: Billing-valid states depend on transition legitimacy.
+  - from: DTO_BOUNDARY_30
+    to: DATA_05
+    type: depends_on
+    reason: Public/private data classification drives DTO boundaries.
+  - from: DTO_BOUNDARY_30
+    to: SECURITY_15
+    type: depends_on
+    reason: DTO policy enforces no-PII leakage guarantees.
+  - from: DTO_BOUNDARY_30
+    to: API_06
+    type: depends_on
+    reason: DTOs are applied on API response layer.
+  - from: MIGRATIONS_31
+    to: DATA_05
+    type: depends_on
+    reason: Schema evolution must preserve data contract guarantees.
+  - from: MIGRATIONS_31
+    to: DOMAIN_04
+    type: depends_on
+    reason: Schema changes must preserve domain invariants.
+  - from: PROVIDER_PANEL_11
+    to: AUTH_RBAC_28
+    type: depends_on
+    reason: Provider panel needs role and ownership enforcement.
+  - from: PROVIDER_PANEL_11
+    to: STATE_MACHINE_29
+    type: depends_on
+    reason: Provider status actions must respect transition matrix.
+  - from: ADMIN_12
+    to: AUTH_RBAC_28
+    type: depends_on
+    reason: Admin module requires strict admin-only authorization.
+  - from: ADMIN_12
+    to: STATE_MACHINE_29
+    type: depends_on
+    reason: Admin invalidation and reassignment need valid transitions.
+  - from: SEO_07
+    to: DTO_BOUNDARY_30
+    type: related
+    reason: Public SEO pages consume public-safe DTOs.
+  - from: TESTING_QA_17
+    to: AUTH_RBAC_28
+    type: depends_on
+    reason: QA includes ownership and role checks.
+  - from: TESTING_QA_17
+    to: STATE_MACHINE_29
+    type: depends_on
+    reason: QA must validate state transitions.
+  - from: TESTING_QA_17
+    to: DTO_BOUNDARY_30
+    type: depends_on
+    reason: QA must validate no-PII public output.
+  - from: TESTING_QA_17
+    to: MIGRATIONS_31
+    type: depends_on
+    reason: QA requires migration reproducibility checks.
+  - from: NEXT_STEP_32
+    to: AUDITORIA_V2_27
+    type: depends_on
+    reason: Execution sequence is derived from the latest audit findings.
+  - from: NEXT_STEP_32
+    to: AUTH_RBAC_28
+    type: depends_on
+    reason: Next implementation phase requires ownership-safe route access.
+  - from: NEXT_STEP_32
+    to: STATE_MACHINE_29
+    type: depends_on
+    reason: Transition validation is mandatory for lead/opportunity flows.
+  - from: NEXT_STEP_32
+    to: DTO_BOUNDARY_30
+    type: depends_on
+    reason: Public/private boundary must be enforced before scaling endpoints.
+  - from: NEXT_STEP_32
+    to: MIGRATIONS_31
+    type: depends_on
+    reason: Execution path includes schema-safe rollout requirements.
+  - from: LEADS_BILLING_08
+    to: DOMAIN_04
+    type: depends_on
+    reason: Derived from frontmatter depends_on
+  - from: LEADS_BILLING_08
+    to: DATA_05
+    type: depends_on
+    reason: Derived from frontmatter depends_on
+  - from: LEADS_BILLING_08
+    to: API_06
+    type: depends_on
+    reason: Derived from frontmatter depends_on
+  - from: PROVIDER_PANEL_11
+    to: API_06
+    type: depends_on
+    reason: Derived from frontmatter depends_on
+  - from: PROVIDER_PANEL_11
+    to: SECURITY_15
+    type: depends_on
+    reason: Derived from frontmatter depends_on
+  - from: ADMIN_12
+    to: API_06
+    type: depends_on
+    reason: Derived from frontmatter depends_on
+  - from: ADMIN_12
+    to: SECURITY_15
+    type: depends_on
+    reason: Derived from frontmatter depends_on
+  - from: SECURITY_15
+    to: ARCH_03
+    type: depends_on
+    reason: Derived from frontmatter depends_on
+  - from: SECURITY_15
+    to: DOMAIN_04
+    type: depends_on
+    reason: Derived from frontmatter depends_on
+  - from: TESTING_QA_17
+    to: API_06
+    type: depends_on
+    reason: Derived from frontmatter depends_on
+  - from: TESTING_QA_17
+    to: DOMAIN_04
+    type: depends_on
+    reason: Derived from frontmatter depends_on
+  - from: ROADMAP_18
+    to: SCOPE_02
+    type: depends_on
+    reason: Derived from frontmatter depends_on
+  - from: DOD_21
+    to: ROADMAP_18
+    type: depends_on
+    reason: Derived from frontmatter depends_on
+  - from: DOD_21
+    to: TESTING_QA_17
+    type: depends_on
+    reason: Derived from frontmatter depends_on
+  - from: DESALINEACIONES_23
+    to: DOD_21
+    type: depends_on
+    reason: Derived from frontmatter depends_on
+  - from: TRAZABILIDAD_24
+    to: DESALINEACIONES_23
+    type: depends_on
+    reason: Derived from frontmatter depends_on
+  - from: REPORTE_DESALINEACIONES_25
+    to: TRAZABILIDAD_24
+    type: depends_on
+    reason: Derived from frontmatter depends_on
+  - from: PLAN_ALTAS_26
+    to: REPORTE_DESALINEACIONES_25
+    type: depends_on
+    reason: Derived from frontmatter depends_on
+  - from: AUDITORIA_V2_27
+    to: PLAN_ALTAS_26
+    type: depends_on
+    reason: Derived from frontmatter depends_on
+  - from: AUTH_RBAC_28
+    to: PROVIDER_PANEL_11
+    type: related
+    reason: Derived from frontmatter related
+  - from: AUTH_RBAC_28
+    to: ADMIN_12
+    type: related
+    reason: Derived from frontmatter related
+  - from: STATE_MACHINE_29
+    to: PROVIDER_PANEL_11
+    type: related
+    reason: Derived from frontmatter related
+  - from: STATE_MACHINE_29
+    to: ADMIN_12
+    type: related
+    reason: Derived from frontmatter related
+  - from: DTO_BOUNDARY_30
+    to: SEO_07
+    type: related
+    reason: Derived from frontmatter related
+  - from: DTO_BOUNDARY_30
+    to: PROVIDER_PANEL_11
+    type: related
+    reason: Derived from frontmatter related
+  - from: DTO_BOUNDARY_30
+    to: ADMIN_12
+    type: related
+    reason: Derived from frontmatter related
+  - from: MIGRATIONS_31
+    to: TESTING_QA_17
+    type: related
+    reason: Derived from frontmatter related
+  - from: MIGRATIONS_31
+    to: DOD_21
+    type: related
+    reason: Derived from frontmatter related
+  - from: NEXT_STEP_32
+    to: DOD_21
+    type: depends_on
+    reason: Derived from frontmatter depends_on
+  - from: NEXT_STEP_32
+    to: LEADS_BILLING_08
+    type: related
+    reason: Derived from frontmatter related
+  - from: NEXT_STEP_32
+    to: API_06
+    type: related
+    reason: Derived from frontmatter related
+  - from: NEXT_STEP_32
+    to: PROVIDER_PANEL_11
+    type: related
+    reason: Derived from frontmatter related
+  - from: ANALISIS_33
+    to: NEXT_STEP_32
+    type: depends_on
+    reason: Analysis v3 operationalizes next-step execution gates before coding.
+  - from: ANALISIS_33
+    to: AUDITORIA_V2_27
+    type: depends_on
+    reason: Analysis v3 starts from unresolved findings in the latest audit.
+  - from: ANALISIS_33
+    to: DOD_21
+    type: depends_on
+    reason: Exit criteria and gates must align with definition of done.
+  - from: ANALISIS_33
+    to: AUTH_RBAC_28
+    type: related
+    reason: Derived from frontmatter related
+  - from: ANALISIS_33
+    to: STATE_MACHINE_29
+    type: related
+    reason: Derived from frontmatter related
+  - from: ANALISIS_33
+    to: DTO_BOUNDARY_30
+    type: related
+    reason: Derived from frontmatter related
+  - from: ANALISIS_33
+    to: MIGRATIONS_31
+    type: related
+    reason: Derived from frontmatter related
+  - from: CIERRE_PREDEV_34
+    to: ANALISIS_33
+    type: depends_on
+    reason: Derived from frontmatter depends_on
+  - from: CIERRE_PREDEV_34
+    to: NEXT_STEP_32
+    type: depends_on
+    reason: Derived from frontmatter depends_on
+  - from: CIERRE_PREDEV_34
+    to: REPORTE_DESALINEACIONES_25
+    type: depends_on
+    reason: Derived from frontmatter depends_on
+  - from: CIERRE_PREDEV_34
+    to: DOD_21
+    type: depends_on
+    reason: Derived from frontmatter depends_on
+  - from: CIERRE_PREDEV_34
+    to: TRAZABILIDAD_24
+    type: related
+    reason: Derived from frontmatter related
+  - from: CIERRE_PREDEV_34
+    to: AUTH_RBAC_28
+    type: related
+    reason: Derived from frontmatter related
+  - from: CIERRE_PREDEV_34
+    to: STATE_MACHINE_29
+    type: related
+    reason: Derived from frontmatter related
+  - from: CIERRE_PREDEV_34
+    to: DTO_BOUNDARY_30
+    type: related
+    reason: Derived from frontmatter related
+  - from: CIERRE_PREDEV_34
+    to: MIGRATIONS_31
+    type: related
+    reason: Derived from frontmatter related
+  - from: READINESS_35
+    to: CIERRE_PREDEV_34
+    type: depends_on
+    reason: Derived from frontmatter depends_on
+  - from: READINESS_35
+    to: NEXT_STEP_32
+    type: depends_on
+    reason: Derived from frontmatter depends_on
+  - from: READINESS_35
+    to: TRAZABILIDAD_24
+    type: depends_on
+    reason: Derived from frontmatter depends_on
+  - from: READINESS_35
+    to: DOD_21
+    type: depends_on
+    reason: Derived from frontmatter depends_on
+  - from: READINESS_35
+    to: TESTING_QA_17
+    type: related
+    reason: Derived from frontmatter related
+  - from: READINESS_35
+    to: API_06
+    type: related
+    reason: Derived from frontmatter related
+  - from: READINESS_35
+    to: MIGRATIONS_31
+    type: related
+    reason: Derived from frontmatter related
+  - from: SLICE1_36
+    to: READINESS_35
+    type: depends_on
+    reason: Derived from frontmatter depends_on
+  - from: SLICE1_36
+    to: NEXT_STEP_32
+    type: depends_on
+    reason: Derived from frontmatter depends_on
+  - from: SLICE1_36
+    to: CIERRE_PREDEV_34
+    type: depends_on
+    reason: Derived from frontmatter depends_on
+  - from: SLICE1_36
+    to: API_06
+    type: related
+    reason: Derived from frontmatter related
+  - from: SLICE1_36
+    to: LEADS_BILLING_08
+    type: related
+    reason: Derived from frontmatter related
+  - from: SLICE1_36
+    to: AUTH_RBAC_28
+    type: related
+    reason: Derived from frontmatter related
+  - from: SLICE1_36
+    to: STATE_MACHINE_29
+    type: related
+    reason: Derived from frontmatter related
+  - from: SLICE1_36
+    to: DTO_BOUNDARY_30
+    type: related
+    reason: Derived from frontmatter related
+  - from: SLICE1_36
+    to: MIGRATIONS_31
+    type: related
+    reason: Derived from frontmatter related
+  - from: SLICE1_36
+    to: TESTING_QA_17
+    type: related
+    reason: Derived from frontmatter related
+  - from: PLAN_SLICE1_37
+    to: SLICE1_36
+    type: depends_on
+    reason: Derived from frontmatter depends_on
+  - from: PLAN_SLICE1_37
+    to: READINESS_35
+    type: depends_on
+    reason: Derived from frontmatter depends_on
+  - from: PLAN_SLICE1_37
+    to: NEXT_STEP_32
+    type: depends_on
+    reason: Derived from frontmatter depends_on
+  - from: PLAN_SLICE1_37
+    to: MIGRATIONS_31
+    type: depends_on
+    reason: Derived from frontmatter depends_on
+  - from: PLAN_SLICE1_37
+    to: TESTING_QA_17
+    type: depends_on
+    reason: Derived from frontmatter depends_on
+  - from: PLAN_SLICE1_37
+    to: API_06
+    type: related
+    reason: Derived from frontmatter related
+  - from: PLAN_SLICE1_37
+    to: LEADS_BILLING_08
+    type: related
+    reason: Derived from frontmatter related
+  - from: PLAN_SLICE1_37
+    to: AUTH_RBAC_28
+    type: related
+    reason: Derived from frontmatter related
+  - from: PLAN_SLICE1_37
+    to: STATE_MACHINE_29
+    type: related
+    reason: Derived from frontmatter related
+  - from: PLAN_SLICE1_37
+    to: DTO_BOUNDARY_30
+    type: related
+    reason: Derived from frontmatter related
+  - from: PLAN_SLICE1_37
+    to: TRAZABILIDAD_24
+    type: related
+    reason: Derived from frontmatter related
+  - from: PR_BREAKDOWN_38
+    to: PLAN_SLICE1_37
+    type: depends_on
+    reason: Derived from frontmatter depends_on
+  - from: PR_BREAKDOWN_38
+    to: SLICE1_36
+    type: depends_on
+    reason: Derived from frontmatter depends_on
+  - from: PR_BREAKDOWN_38
+    to: MIGRATIONS_31
+    type: depends_on
+    reason: Derived from frontmatter depends_on
+  - from: PR_BREAKDOWN_38
+    to: TESTING_QA_17
+    type: depends_on
+    reason: Derived from frontmatter depends_on
+  - from: PR_BREAKDOWN_38
+    to: API_06
+    type: related
+    reason: Derived from frontmatter related
+  - from: PR_BREAKDOWN_38
+    to: LEADS_BILLING_08
+    type: related
+    reason: Derived from frontmatter related
+  - from: PR_BREAKDOWN_38
+    to: DTO_BOUNDARY_30
+    type: related
+    reason: Derived from frontmatter related
+  - from: PR_BREAKDOWN_38
+    to: TRAZABILIDAD_24
+    type: related
+    reason: Derived from frontmatter related
+  - from: RUTA_MAESTRA_39
+    to: ROADMAP_18
+    type: depends_on
+    reason: Derived from frontmatter depends_on
+  - from: RUTA_MAESTRA_39
+    to: NEXT_STEP_32
+    type: depends_on
+    reason: Derived from frontmatter depends_on
+  - from: RUTA_MAESTRA_39
+    to: READINESS_35
+    type: depends_on
+    reason: Derived from frontmatter depends_on
+  - from: RUTA_MAESTRA_39
+    to: PLAN_SLICE1_37
+    type: depends_on
+    reason: Derived from frontmatter depends_on
+  - from: RUTA_MAESTRA_39
+    to: PR_BREAKDOWN_38
+    type: depends_on
+    reason: Derived from frontmatter depends_on
+  - from: RUTA_MAESTRA_39
+    to: TRAZABILIDAD_24
+    type: depends_on
+    reason: Derived from frontmatter depends_on
+  - from: RUTA_MAESTRA_39
+    to: DOD_21
+    type: depends_on
+    reason: Derived from frontmatter depends_on
+  - from: RUTA_MAESTRA_39
+    to: API_06
+    type: related
+    reason: Derived from frontmatter related
+  - from: RUTA_MAESTRA_39
+    to: STATE_MACHINE_29
+    type: related
+    reason: Derived from frontmatter related
+  - from: RUTA_MAESTRA_39
+    to: DTO_BOUNDARY_30
+    type: related
+    reason: Derived from frontmatter related
+  - from: RUTA_MAESTRA_39
+    to: MIGRATIONS_31
+    type: related
+    reason: Derived from frontmatter related
+  - from: RUTA_MAESTRA_39
+    to: TESTING_QA_17
+    type: related
+    reason: Derived from frontmatter related
+  - from: HANDOFF_SLICE1_40
+    to: PLAN_SLICE1_37
+    type: depends_on
+    reason: Derived from frontmatter depends_on
+  - from: HANDOFF_SLICE1_40
+    to: PR_BREAKDOWN_38
+    type: depends_on
+    reason: Derived from frontmatter depends_on
+  - from: HANDOFF_SLICE1_40
+    to: TRAZABILIDAD_24
+    type: depends_on
+    reason: Derived from frontmatter depends_on
+  - from: HANDOFF_SLICE1_40
+    to: RUTA_MAESTRA_39
+    type: depends_on
+    reason: Derived from frontmatter depends_on
+  - from: HANDOFF_SLICE1_40
+    to: API_06
+    type: related
+    reason: Derived from frontmatter related
+  - from: HANDOFF_SLICE1_40
+    to: MIGRATIONS_31
+    type: related
+    reason: Derived from frontmatter related
+  - from: HANDOFF_SLICE1_40
+    to: TESTING_QA_17
+    type: related
+    reason: Derived from frontmatter related
+  - from: PROVIDER_PANEL_11
+    to: AUTH_RBAC_28
+    type: related
+    reason: Derived from frontmatter related
+  - from: PROVIDER_PANEL_11
+    to: STATE_MACHINE_29
+    type: related
+    reason: Derived from frontmatter related

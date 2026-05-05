@@ -1,0 +1,152 @@
+---
+export const prerender = true;
+import {
+  getProvidersForServiceInCity,
+  getRelatedServiceSlugs,
+  getServiceBySlug,
+  getServiceName
+} from '../../data/catalog';
+
+export async function getStaticPaths() {
+  return [
+    { params: { city: 'bogota', service: 'cajas-personalizadas' } },
+    { params: { city: 'bogota', service: 'troqueles' } },
+    { params: { city: 'bogota', service: 'impresion' } },
+    { params: { city: 'bogota', service: 'etiquetas' } }
+  ];
+}
+
+const { city, service } = Astro.params;
+const citySlug = city ?? 'bogota';
+const serviceSlug = service ?? 'cajas-personalizadas';
+const serviceItem = getServiceBySlug(serviceSlug);
+const serviceName = serviceItem?.name ?? getServiceName(serviceSlug);
+
+const apiBaseUrl = import.meta.env.PUBLIC_API_BASE_URL ?? 'http://localhost:8787';
+const leadsEndpoint = `${apiBaseUrl}/api/leads`;
+
+const related = getRelatedServiceSlugs(serviceSlug).map((slug) => ({
+  slug,
+  label: getServiceName(slug)
+}));
+
+const providers = getProvidersForServiceInCity(citySlug, serviceSlug);
+const canonicalUrl = `http://localhost:4321/${citySlug}/${serviceSlug}`;
+---
+
+<html lang="es">
+  <head>
+    <meta charset="utf-8" />
+    <title>{serviceName} en {citySlug} | Solicita cotizaciones</title>
+    <meta name="description" content={`Encuentra proveedores de ${serviceName} en ${citySlug} y solicita servicios relacionados.`} />
+    <link rel="canonical" href={canonicalUrl} />
+    <meta name="viewport" content="width=device-width" />
+  </head>
+  <body>
+    <main style="max-width: 960px; margin: 0 auto; padding: 48px 20px; font-family: system-ui, sans-serif;">
+      <a href="/servicios">&larr; Ver servicios</a>
+      <h1>{serviceName} en {citySlug}</h1>
+      <p>{serviceItem?.description ?? 'Solicita cotizaciones y anade servicios complementarios para tu proyecto.'}</p>
+
+      <section style="margin-top: 24px;">
+        <h2>Proveedores disponibles</h2>
+        {providers.length === 0 ? (
+          <p>Aun no hay proveedores activos para este servicio en esta ciudad.</p>
+        ) : (
+          <ul>
+            {providers.map((provider) => (
+              <li>
+                <a href={`/proveedores/${provider.slug}`}>{provider.displayName}</a>
+              </li>
+            ))}
+          </ul>
+        )}
+      </section>
+
+      <section style="margin-top: 32px; border: 1px solid #ddd; border-radius: 16px; padding: 20px;">
+        <h2>Solicitar cotizacion</h2>
+        <form id="lead-form" method="post" action={leadsEndpoint} style="display: grid; gap: 12px;">
+          <input name="city_slug" value={citySlug} type="hidden" />
+          <input name="primary_service_slug" value={serviceSlug} type="hidden" />
+
+          <div data-step="1">
+            <h3>Paso 1: Necesidad base</h3>
+            <textarea name="description" placeholder="Cuentanos que necesitas" required></textarea>
+            <div style="display:flex; justify-content:flex-end;">
+              <button type="button" data-next-step="2">Continuar</button>
+            </div>
+          </div>
+
+          <div data-step="2" hidden>
+            <h3>Paso 2: Servicios relacionados</h3>
+            <fieldset>
+              <legend>Este proyecto tambien puede necesitar:</legend>
+              {related.map((item) => (
+                <label style="display: block;">
+                  <input type="checkbox" name="requested_service_slugs" value={item.slug} />
+                  {item.label}
+                </label>
+              ))}
+            </fieldset>
+            <div style="display:flex; justify-content:space-between; gap:8px;">
+              <button type="button" data-prev-step="1">Volver</button>
+              <button type="button" data-next-step="3">Continuar</button>
+            </div>
+          </div>
+
+          <div data-step="3" hidden>
+            <h3>Paso 3: Contacto y contexto</h3>
+            <input name="client_name" placeholder="Nombre" required />
+            <input name="client_email" type="email" placeholder="Email" required />
+            <input name="client_phone" placeholder="WhatsApp o telefono" required />
+            <select name="urgency">
+              <option value="">Urgencia (opcional)</option>
+              <option value="this_week">Esta semana</option>
+              <option value="this_month">Este mes</option>
+            </select>
+            <input name="budget_range" placeholder="Presupuesto aproximado (opcional)" />
+
+            <label>
+              <input type="checkbox" name="consent" required />
+              Acepto ser contactado por proveedores relacionados con mi solicitud.
+            </label>
+
+            <div style="display:flex; justify-content:space-between; gap:8px;">
+              <button type="button" data-prev-step="2">Volver</button>
+              <button type="submit">Enviar solicitud</button>
+            </div>
+          </div>
+        </form>
+      </section>
+    </main>
+
+    <script is:inline>
+      const form = document.querySelector('#lead-form');
+      if (form) {
+        const steps = Array.from(form.querySelectorAll('[data-step]'));
+        const showStep = (stepNumber) => {
+          for (const stepEl of steps) {
+            const isCurrent = stepEl.getAttribute('data-step') === String(stepNumber);
+            stepEl.hidden = !isCurrent;
+          }
+        };
+
+        form.addEventListener('click', (event) => {
+          const target = event.target;
+          if (!(target instanceof HTMLElement)) return;
+
+          const next = target.getAttribute('data-next-step');
+          if (next) {
+            showStep(Number(next));
+            return;
+          }
+
+          const prev = target.getAttribute('data-prev-step');
+          if (prev) {
+            showStep(Number(prev));
+          }
+        });
+      }
+    </script>
+  </body>
+</html>

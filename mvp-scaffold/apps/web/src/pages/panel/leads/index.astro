@@ -1,0 +1,165 @@
+---
+export const prerender = true;
+const canonicalUrl = 'http://localhost:4321/panel/leads';
+---
+
+<html lang="es">
+  <head>
+    <meta charset="utf-8" />
+    <title>Leads provider | Reindr Marketplace MVP</title>
+    <meta name="description" content="Bandeja de oportunidades del proveedor autenticado." />
+    <link rel="canonical" href={canonicalUrl} />
+    <meta name="viewport" content="width=device-width" />
+  </head>
+  <body>
+    <main style="max-width: 1080px; margin: 0 auto; padding: 40px 20px; font-family: system-ui, sans-serif;">
+      <header style="display:flex; justify-content:space-between; align-items:center; gap:16px; flex-wrap:wrap;">
+        <h1 style="margin:0;">Leads asignados</h1>
+        <nav style="display:flex; gap:10px; flex-wrap:wrap; align-items:center;">
+          <a href="/panel">Dashboard</a>
+          <a href="/panel/perfil">Perfil</a>
+          <a href="/panel/leads">Leads</a>
+          <button id="logout-btn" type="button">Cerrar sesion</button>
+        </nav>
+      </header>
+
+      <section style="margin-top:16px; display:flex; gap:10px; align-items:end; flex-wrap:wrap;">
+        <label>
+          Filtrar por estado
+          <select id="lead-status-filter">
+            <option value="all">Todos</option>
+            <option value="new">Nuevo</option>
+            <option value="viewed">Visto</option>
+            <option value="contacted">Contactado</option>
+            <option value="quoted">Cotizado</option>
+            <option value="won">Ganado</option>
+            <option value="lost">Perdido</option>
+            <option value="rejected">Rechazado</option>
+            <option value="invalid">Invalido</option>
+          </select>
+        </label>
+        <button id="refresh-leads-btn" type="button">Recargar</button>
+      </section>
+
+      <p id="leads-status" style="margin:12px 0; font-size:14px;"></p>
+
+      <section style="border:1px solid #ddd; border-radius:12px; overflow:auto;">
+        <table style="width:100%; border-collapse:collapse; min-width:700px;">
+          <thead>
+            <tr style="background:#f5f5f5;">
+              <th style="text-align:left; padding:10px;">Codigo</th>
+              <th style="text-align:left; padding:10px;">Servicio</th>
+              <th style="text-align:left; padding:10px;">Estado</th>
+              <th style="text-align:left; padding:10px;">Precio lead</th>
+              <th style="text-align:left; padding:10px;">Asignado</th>
+              <th style="text-align:left; padding:10px;">Accion</th>
+            </tr>
+          </thead>
+          <tbody id="leads-table-body">
+            <tr>
+              <td colspan="6" style="padding:12px;">Sin datos.</td>
+            </tr>
+          </tbody>
+        </table>
+      </section>
+    </main>
+
+    <script>
+      import {
+        apiRequest,
+        clearStoredAccessToken,
+        ensureProviderSession,
+        formatCopAmount,
+        providerAuthHeaders,
+        statusLabel
+      } from '../../../scripts/provider-panel-client';
+
+      type ProviderLeadSummary = {
+        opportunity_id: string;
+        opportunity_status: string;
+        lead_public_code: string;
+        service_slug: string;
+        lead_price: number;
+        assigned_at: string;
+      };
+
+      const statusEl = document.querySelector<HTMLElement>('#leads-status');
+      const filterEl = document.querySelector<HTMLSelectElement>('#lead-status-filter');
+      const refreshBtn = document.querySelector<HTMLButtonElement>('#refresh-leads-btn');
+      const logoutButton = document.querySelector<HTMLButtonElement>('#logout-btn');
+      const tableBody = document.querySelector<HTMLElement>('#leads-table-body');
+
+      let allLeads: ProviderLeadSummary[] = [];
+
+      function setStatus(message: string, tone: 'neutral' | 'error' | 'ok' = 'neutral') {
+        if (!statusEl) return;
+        statusEl.textContent = message;
+        statusEl.style.color = tone === 'error' ? '#a40000' : tone === 'ok' ? '#0b5d1e' : '#333';
+      }
+
+      function renderRows(leads: ProviderLeadSummary[]) {
+        if (!tableBody) return;
+        if (!leads.length) {
+          tableBody.innerHTML = '<tr><td colspan="6" style="padding:12px;">No hay oportunidades para este filtro.</td></tr>';
+          return;
+        }
+
+        tableBody.innerHTML = leads
+          .map((lead) => {
+            const detailHref = `/panel/leads/${encodeURIComponent(lead.opportunity_id)}`;
+            return `<tr>
+              <td style="padding:10px; border-top:1px solid #eee;">${lead.lead_public_code}</td>
+              <td style="padding:10px; border-top:1px solid #eee;">${lead.service_slug}</td>
+              <td style="padding:10px; border-top:1px solid #eee;">${statusLabel(lead.opportunity_status)}</td>
+              <td style="padding:10px; border-top:1px solid #eee;">${formatCopAmount(Number(lead.lead_price ?? 0))}</td>
+              <td style="padding:10px; border-top:1px solid #eee;">${lead.assigned_at ?? ''}</td>
+              <td style="padding:10px; border-top:1px solid #eee;"><a href="${detailHref}">Ver detalle</a></td>
+            </tr>`;
+          })
+          .join('');
+      }
+
+      function applyFilter() {
+        const selected = filterEl?.value ?? 'all';
+        if (selected === 'all') {
+          renderRows(allLeads);
+          return;
+        }
+        renderRows(allLeads.filter((lead) => lead.opportunity_status === selected));
+      }
+
+      async function loadLeads() {
+        const session = await ensureProviderSession({
+          redirectToLogin: true
+        });
+        if (!session.ok) return;
+
+        const result = await apiRequest('/api/provider/leads', {
+          headers: {
+            ...providerAuthHeaders()
+          }
+        });
+
+        if (!result.ok) {
+          allLeads = [];
+          renderRows([]);
+          setStatus('No se pudo cargar la bandeja. Verifica sesion provider.', 'error');
+          return;
+        }
+
+        allLeads = Array.isArray(result.data) ? (result.data as ProviderLeadSummary[]) : [];
+        applyFilter();
+        setStatus(`Bandeja cargada: ${allLeads.length} oportunidades.`, 'ok');
+      }
+
+      filterEl?.addEventListener('change', () => applyFilter());
+      refreshBtn?.addEventListener('click', () => loadLeads());
+      logoutButton?.addEventListener('click', () => {
+        clearStoredAccessToken();
+        window.location.href = '/panel/login';
+      });
+
+      loadLeads();
+    </script>
+  </body>
+</html>

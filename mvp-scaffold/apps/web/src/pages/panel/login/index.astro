@@ -1,0 +1,100 @@
+---
+export const prerender = true;
+const canonicalUrl = 'http://localhost:4321/panel/login';
+---
+
+<html lang="es">
+  <head>
+    <meta charset="utf-8" />
+    <title>Login provider | Reindr Marketplace MVP</title>
+    <meta
+      name="description"
+      content="Acceso de proveedor para gestionar perfil, oportunidades y cotizaciones."
+    />
+    <link rel="canonical" href={canonicalUrl} />
+    <meta name="viewport" content="width=device-width" />
+  </head>
+  <body style="margin:0; background:#f2f4f7;">
+    <main style="min-height:100vh; display:grid; place-items:center; padding:20px; font-family:system-ui,sans-serif;">
+      <section style="width:min(420px,100%); background:#fff; border:1px solid #dde2ea; border-radius:14px; padding:20px;">
+        <h1 style="margin-top:0;">Acceso provider</h1>
+        <p style="margin-top:0;">Inicia sesion con tu cuenta provider para entrar al panel operativo.</p>
+
+        <form id="provider-login-form" style="display:grid; gap:10px;">
+          <label>
+            Email
+            <input type="email" name="email" required />
+          </label>
+          <label>
+            Password
+            <input type="password" name="password" required />
+          </label>
+          <button type="submit">Entrar al panel</button>
+        </form>
+
+        <p id="login-status" style="margin:12px 0 0; font-size:14px;"></p>
+      </section>
+    </main>
+
+    <script>
+      import {
+        apiRequest,
+        ensureProviderSession,
+        setStoredAccessToken
+      } from '../../../scripts/provider-panel-client';
+
+      type LoginResponse = {
+        access_token: string;
+        actor: {
+          role: string;
+        };
+      };
+
+      const form = document.querySelector<HTMLFormElement>('#provider-login-form');
+      const statusEl = document.querySelector<HTMLElement>('#login-status');
+      const params = new URLSearchParams(window.location.search);
+      const nextRaw = params.get('next');
+      const nextPath = nextRaw && nextRaw.startsWith('/') ? nextRaw : '/panel';
+
+      function setStatus(message: string, tone: 'neutral' | 'error' | 'ok' = 'neutral') {
+        if (!statusEl) return;
+        statusEl.textContent = message;
+        statusEl.style.color = tone === 'error' ? '#a40000' : tone === 'ok' ? '#0b5d1e' : '#333';
+      }
+
+      (async () => {
+        const existingSession = await ensureProviderSession();
+        if (existingSession.ok) {
+          window.location.href = nextPath;
+        }
+      })();
+
+      form?.addEventListener('submit', async (event) => {
+        event.preventDefault();
+        const formData = new FormData(form);
+        const email = String(formData.get('email') ?? '').trim();
+        const password = String(formData.get('password') ?? '');
+
+        const result = await apiRequest<LoginResponse>('/api/auth/login', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ email, password })
+        });
+
+        if (!result.ok || !result.data) {
+          setStatus('Credenciales invalidas.', 'error');
+          return;
+        }
+
+        if (result.data.actor.role !== 'provider') {
+          setStatus('Esta cuenta no tiene rol provider.', 'error');
+          return;
+        }
+
+        setStoredAccessToken(result.data.access_token);
+        setStatus('Acceso correcto. Redirigiendo...', 'ok');
+        window.location.href = nextPath;
+      });
+    </script>
+  </body>
+</html>
