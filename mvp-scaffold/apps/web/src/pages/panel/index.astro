@@ -1,6 +1,7 @@
 ---
 export const prerender = true;
-const canonicalUrl = 'http://localhost:4321/panel';
+const siteOrigin = Astro.site ? new URL(Astro.site).origin : 'https://apps.reindr.org';
+const canonicalUrl = `${siteOrigin}/panel`;
 ---
 
 <html lang="es">
@@ -11,6 +12,7 @@ const canonicalUrl = 'http://localhost:4321/panel';
       name="description"
       content="Panel operativo para proveedores: acceso, metricas base y atajos de gestion."
     />
+    <meta name="robots" content="noindex, nofollow" />
     <link rel="canonical" href={canonicalUrl} />
     <meta name="viewport" content="width=device-width" />
   </head>

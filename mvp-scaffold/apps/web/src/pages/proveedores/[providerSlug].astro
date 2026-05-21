@@ -18,7 +18,8 @@ if (!provider) {
   throw new Error(`Provider not found for slug: ${providerSlug}`);
 }
 
-const canonicalUrl = `http://localhost:4321/proveedores/${provider.slug}`;
+const siteOrigin = Astro.site ? new URL(Astro.site).origin : 'https://apps.reindr.org';
+const canonicalUrl = `${siteOrigin}/proveedores/${provider.slug}`;
 const template = resolveProviderTemplateWithFallback(provider.templateId);
 ---
 

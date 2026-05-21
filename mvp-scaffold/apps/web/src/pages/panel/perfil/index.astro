@@ -1,7 +1,8 @@
 ---
 export const prerender = true;
 import { PROVIDER_TEMPLATES } from '../../../data/provider-templates';
-const canonicalUrl = 'http://localhost:4321/panel/perfil';
+const siteOrigin = Astro.site ? new URL(Astro.site).origin : 'https://apps.reindr.org';
+const canonicalUrl = `${siteOrigin}/panel/perfil`;
 ---
 
 <html lang="es">
@@ -9,6 +10,7 @@ const canonicalUrl = 'http://localhost:4321/panel/perfil';
     <meta charset="utf-8" />
     <title>Perfil proveedor | Reindr Marketplace MVP</title>
     <meta name="description" content="Gestion de perfil provider: datos publicos y contacto operativo." />
+    <meta name="robots" content="noindex, nofollow" />
     <link rel="canonical" href={canonicalUrl} />
     <meta name="viewport" content="width=device-width" />
   </head>

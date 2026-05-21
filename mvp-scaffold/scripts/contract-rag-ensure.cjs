@@ -4,6 +4,7 @@ const { spawnSync } = require('node:child_process');
 
 const repoRoot = path.resolve(__dirname, '..', '..');
 const toolDir = path.join(repoRoot, 'tools', 'contract-rag');
+const npmCmd = process.platform === 'win32' ? 'npm.cmd' : 'npm';
 
 function run(command, cwd) {
   const result = spawnSync(command, {
@@ -30,13 +31,13 @@ function quoteArg(value) {
 }
 
 function buildCliCommand(args) {
-  return `npm.cmd run cli -- ${args.map(quoteArg).join(' ')}`;
+  return `${npmCmd} run cli -- ${args.map(quoteArg).join(' ')}`;
 }
 
 const toolNodeModules = path.join(toolDir, 'node_modules');
 if (!fs.existsSync(toolNodeModules)) {
   console.log('[contract-rag] Installing tool dependencies...');
-  run('npm.cmd install --no-audit --no-fund', toolDir);
+  run(`${npmCmd} install --no-audit --no-fund`, toolDir);
 }
 
 const ensureMode = String(process.env.CONTRACT_RAG_ENSURE_MODE ?? 'full').toLowerCase();

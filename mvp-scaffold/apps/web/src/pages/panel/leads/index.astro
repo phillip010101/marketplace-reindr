@@ -1,6 +1,7 @@
 ---
 export const prerender = true;
-const canonicalUrl = 'http://localhost:4321/panel/leads';
+const siteOrigin = Astro.site ? new URL(Astro.site).origin : 'https://apps.reindr.org';
+const canonicalUrl = `${siteOrigin}/panel/leads`;
 ---
 
 <html lang="es">
@@ -8,6 +9,7 @@ const canonicalUrl = 'http://localhost:4321/panel/leads';
     <meta charset="utf-8" />
     <title>Leads provider | Reindr Marketplace MVP</title>
     <meta name="description" content="Bandeja de oportunidades del proveedor autenticado." />
+    <meta name="robots" content="noindex, nofollow" />
     <link rel="canonical" href={canonicalUrl} />
     <meta name="viewport" content="width=device-width" />
   </head>

@@ -1,6 +1,8 @@
 ---
 export const prerender = true;
 import { SERVICES } from '../data/catalog';
+const siteOrigin = Astro.site ? new URL(Astro.site).origin : 'https://apps.reindr.org';
+const canonicalUrl = `${siteOrigin}/`;
 ---
 
 <html lang="es">
@@ -8,7 +10,7 @@ import { SERVICES } from '../data/catalog';
     <meta charset="utf-8" />
     <title>Red de servicios conectados | Reindr Marketplace MVP</title>
     <meta name="description" content="Encuentra proveedores y solicita cotizaciones para servicios relacionados en tu ciudad." />
-    <link rel="canonical" href="http://localhost:4321/" />
+    <link rel="canonical" href={canonicalUrl} />
     <meta name="viewport" content="width=device-width" />
   </head>
   <body>

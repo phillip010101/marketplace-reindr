@@ -104,15 +104,15 @@ test('E2E-seo-route-content: public SEO routes include title, description and ca
   const servicesIndex = readDist(path.join('servicios', 'index.html'));
   assert.match(servicesIndex, /<title>Servicios \| Reindr Marketplace MVP<\/title>/);
   assert.match(servicesIndex, /name="description"/);
-  assert.match(servicesIndex, /rel="canonical" href="http:\/\/localhost:4321\/servicios"/);
+  assert.match(servicesIndex, /rel="canonical" href="https:\/\/apps\.reindr\.org\/servicios"/);
 
   const serviceDetail = readDist(path.join('servicios', 'cajas-personalizadas', 'index.html'));
   assert.match(serviceDetail, /<title>Cajas personalizadas \| Reindr Marketplace MVP<\/title>/);
-  assert.match(serviceDetail, /rel="canonical" href="http:\/\/localhost:4321\/servicios\/cajas-personalizadas"/);
+  assert.match(serviceDetail, /rel="canonical" href="https:\/\/apps\.reindr\.org\/servicios\/cajas-personalizadas"/);
 
   const providerDetail = readDist(path.join('proveedores', 'cajas-acme', 'index.html'));
   assert.match(providerDetail, /<title>Cajas Acme \| Proveedor en Bogota<\/title>/);
-  assert.match(providerDetail, /rel="canonical" href="http:\/\/localhost:4321\/proveedores\/cajas-acme"/);
+  assert.match(providerDetail, /rel="canonical" href="https:\/\/apps\.reindr\.org\/proveedores\/cajas-acme"/);
 });
 
 test('E2E-no-pii-public-pages: generated public pages do not expose seeded private contact values', () => {

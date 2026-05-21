@@ -10,7 +10,8 @@ const { service } = Astro.params;
 const serviceSlug = service ?? 'cajas-personalizadas';
 const serviceItem = getServiceBySlug(serviceSlug);
 const providers = getProvidersForServiceInCity('bogota', serviceSlug);
-const canonicalUrl = `http://localhost:4321/servicios/${serviceSlug}`;
+const siteOrigin = Astro.site ? new URL(Astro.site).origin : 'https://apps.reindr.org';
+const canonicalUrl = `${siteOrigin}/servicios/${serviceSlug}`;
 ---
 
 <html lang="es">

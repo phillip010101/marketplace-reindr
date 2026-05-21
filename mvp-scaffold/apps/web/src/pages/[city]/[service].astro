@@ -31,7 +31,8 @@ const related = getRelatedServiceSlugs(serviceSlug).map((slug) => ({
 }));
 
 const providers = getProvidersForServiceInCity(citySlug, serviceSlug);
-const canonicalUrl = `http://localhost:4321/${citySlug}/${serviceSlug}`;
+const siteOrigin = Astro.site ? new URL(Astro.site).origin : 'https://apps.reindr.org';
+const canonicalUrl = `${siteOrigin}/${citySlug}/${serviceSlug}`;
 ---
 
 <html lang="es">

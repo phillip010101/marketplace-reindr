@@ -1,7 +1,8 @@
 ---
 export const prerender = false;
 const opportunityIdParam = Astro.params.opportunityId ?? '';
-const canonicalUrl = `http://localhost:4321/panel/leads/${opportunityIdParam}`;
+const siteOrigin = Astro.site ? new URL(Astro.site).origin : 'https://apps.reindr.org';
+const canonicalUrl = `${siteOrigin}/panel/leads/${opportunityIdParam}`;
 ---
 
 <html lang="es">
@@ -9,6 +10,7 @@ const canonicalUrl = `http://localhost:4321/panel/leads/${opportunityIdParam}`;
     <meta charset="utf-8" />
     <title>Detalle lead provider | Reindr Marketplace MVP</title>
     <meta name="description" content="Detalle de oportunidad provider: estado, contacto y cotizacion." />
+    <meta name="robots" content="noindex, nofollow" />
     <link rel="canonical" href={canonicalUrl} />
     <meta name="viewport" content="width=device-width" />
     <meta id="opportunity-id-meta" data-opportunity-id={opportunityIdParam} />
