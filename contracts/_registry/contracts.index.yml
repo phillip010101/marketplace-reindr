@@ -724,3 +724,54 @@ contracts:
       - MIGRATIONS_31
       - TESTING_QA_17
     agent_read_policy: always_when_touching_module
+  - id: SLICE2_41
+    file: contracts/41-slice2-admin-minimo-declaration.md
+    title: Slice 2 declaration — Admin minimo operable
+    type: governance
+    status: active
+    priority: high
+    version: 1.0.0
+    summary: "# 41 — Slice 2: Admin minimo operable "
+    applies_to:
+      - engineering
+      - frontend
+      - backend
+      - product
+    depends_on:
+      - SLICE1_36
+      - PLAN_SLICE1_37
+      - PR_BREAKDOWN_38
+      - ADMIN_12
+      - API_06
+      - AUTH_RBAC_28
+    related:
+      - DOD_21
+      - TRAZABILIDAD_24
+      - TESTING_QA_17
+      - RUTA_MAESTRA_39
+      - HANDOFF_SLICE1_40
+    agent_read_policy: always_when_touching_module
+  - id: RUTA_DESARROLLO_42
+    file: contracts/42-ruta-desarrollo-actualizada.md
+    title: Ruta de desarrollo actualizada — post Slice 1, pre Slice 2
+    type: governance
+    status: active
+    priority: critical
+    version: 2.0.0
+    summary: "# 42 — Ruta de desarrollo actualizada (Mayo 2026) "
+    applies_to:
+      - engineering
+      - product
+      - qa
+      - architecture
+    depends_on:
+      - RUTA_MAESTRA_39
+      - ROADMAP_18
+      - HANDOFF_SLICE1_40
+      - SLICE2_41
+    related:
+      - DOD_21
+      - TRAZABILIDAD_24
+      - API_06
+      - ADMIN_12
+    agent_read_policy: always_when_touching_module

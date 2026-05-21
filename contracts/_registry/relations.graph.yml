@@ -547,3 +547,79 @@ relations:
     to: STATE_MACHINE_29
     type: related
     reason: Derived from frontmatter related
+  - from: SLICE2_41
+    to: SLICE1_36
+    type: depends_on
+    reason: Derived from frontmatter depends_on
+  - from: SLICE2_41
+    to: PLAN_SLICE1_37
+    type: depends_on
+    reason: Derived from frontmatter depends_on
+  - from: SLICE2_41
+    to: PR_BREAKDOWN_38
+    type: depends_on
+    reason: Derived from frontmatter depends_on
+  - from: SLICE2_41
+    to: ADMIN_12
+    type: depends_on
+    reason: Derived from frontmatter depends_on
+  - from: SLICE2_41
+    to: API_06
+    type: depends_on
+    reason: Derived from frontmatter depends_on
+  - from: SLICE2_41
+    to: AUTH_RBAC_28
+    type: depends_on
+    reason: Derived from frontmatter depends_on
+  - from: SLICE2_41
+    to: DOD_21
+    type: related
+    reason: Derived from frontmatter related
+  - from: SLICE2_41
+    to: TRAZABILIDAD_24
+    type: related
+    reason: Derived from frontmatter related
+  - from: SLICE2_41
+    to: TESTING_QA_17
+    type: related
+    reason: Derived from frontmatter related
+  - from: SLICE2_41
+    to: RUTA_MAESTRA_39
+    type: related
+    reason: Derived from frontmatter related
+  - from: SLICE2_41
+    to: HANDOFF_SLICE1_40
+    type: related
+    reason: Derived from frontmatter related
+  - from: RUTA_DESARROLLO_42
+    to: RUTA_MAESTRA_39
+    type: depends_on
+    reason: Derived from frontmatter depends_on
+  - from: RUTA_DESARROLLO_42
+    to: ROADMAP_18
+    type: depends_on
+    reason: Derived from frontmatter depends_on
+  - from: RUTA_DESARROLLO_42
+    to: HANDOFF_SLICE1_40
+    type: depends_on
+    reason: Derived from frontmatter depends_on
+  - from: RUTA_DESARROLLO_42
+    to: SLICE2_41
+    type: depends_on
+    reason: Derived from frontmatter depends_on
+  - from: RUTA_DESARROLLO_42
+    to: DOD_21
+    type: related
+    reason: Derived from frontmatter related
+  - from: RUTA_DESARROLLO_42
+    to: TRAZABILIDAD_24
+    type: related
+    reason: Derived from frontmatter related
+  - from: RUTA_DESARROLLO_42
+    to: API_06
+    type: related
+    reason: Derived from frontmatter related
+  - from: RUTA_DESARROLLO_42
+    to: ADMIN_12
+    type: related
+    reason: Derived from frontmatter related
