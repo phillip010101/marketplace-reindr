@@ -60,6 +60,7 @@ type ProviderProfileRow = {
   status: string;
   verified_at: string | null;
   service_slugs: string[] | null;
+  city_slugs: string[] | null;
   template_id: string | null;
 };
 type ProviderLeadListRow = {
@@ -160,10 +161,15 @@ async function fetchProviderProfileByAccount(accountId: string): Promise<Provide
        COALESCE(
          ARRAY_AGG(DISTINCT s.slug) FILTER (WHERE ps.active = true AND s.slug IS NOT NULL),
          '{}'
-       ) AS service_slugs
+       ) AS service_slugs,
+       COALESCE(
+         ARRAY_AGG(DISTINCT loc.slug) FILTER (WHERE ps.active = true AND loc.slug IS NOT NULL AND loc.type = 'city'),
+         '{}'
+       ) AS city_slugs
      FROM providers p
      LEFT JOIN provider_services ps ON ps.provider_id = p.id
      LEFT JOIN services s ON s.id = ps.service_id
+     LEFT JOIN locations loc ON loc.id = ps.location_id
      WHERE p.account_id = $1
      GROUP BY p.id
      LIMIT 1`,
@@ -199,7 +205,8 @@ providerRoute.get('/me', async (c) => {
         template_id: resolveProviderTemplateId(profile),
         status: profile.status,
         verified_at: profile.verified_at,
-        services: profile.service_slugs ?? []
+        services: profile.service_slugs ?? [],
+        cities: profile.city_slugs ?? []
       }
     });
   } catch (error) {
@@ -292,7 +299,8 @@ providerRoute.patch('/me', async (c) => {
         template_id: resolveProviderTemplateId(profile),
         status: profile.status,
         verified_at: profile.verified_at,
-        services: profile.service_slugs ?? []
+        services: profile.service_slugs ?? [],
+        cities: profile.city_slugs ?? []
       }
     });
   } catch (error) {
@@ -509,7 +517,8 @@ providerRoute.post('/leads/:opportunityId/quote', async (c) => {
 // ── Provider Services Management ──────────────────────────────────
 
 const UpdateProviderServicesSchema = z.object({
-  services: z.array(z.string().min(2).max(80)).max(50)
+  services: z.array(z.string().min(2).max(80)).max(50),
+  cities: z.array(z.string().min(2).max(80)).max(20).optional().default(['bogota'])
 });
 
 providerRoute.put('/me/services', async (c) => {
@@ -533,46 +542,40 @@ providerRoute.put('/me/services', async (c) => {
       await client.query('BEGIN');
 
       const serviceSlugs = parsed.data.services;
-      if (serviceSlugs.length > 0) {
+      const citySlugs = parsed.data.cities;
+
+      // Deactivate all existing
+      await client.query(
+        `UPDATE provider_services SET active = false, updated_at = now()
+         WHERE provider_id = $1`,
+        [providerId]
+      );
+
+      if (serviceSlugs.length > 0 && citySlugs.length > 0) {
         const slugList = serviceSlugs.map((_, i) => `$${i + 1}`).join(', ');
+        const cityList = citySlugs.map((_, i) => `$${i + 1 + serviceSlugs.length}`).join(', ');
+
         const serviceRows = await client.query<{ id: string; slug: string }>(
           `SELECT id, slug FROM services WHERE slug IN (${slugList}) AND status = 'active'`,
           serviceSlugs
         );
 
-        const activeSlugs = new Set(serviceRows.rows.map((r) => r.slug));
-        const bogotaResult = await client.query<{ id: string }>(
-          `SELECT id FROM locations WHERE slug = 'bogota' AND type = 'city' LIMIT 1`
+        const cityRows = await client.query<{ id: string; slug: string }>(
+          `SELECT id, slug FROM locations WHERE slug IN (${cityList}) AND type = 'city'`,
+          citySlugs
         );
-        const bogotaId = bogotaResult.rows[0]?.id;
 
-        if (bogotaId) {
-          // Deactivate all existing services
-          await client.query(
-            `UPDATE provider_services SET active = false, updated_at = now()
-             WHERE provider_id = $1`,
-            [providerId]
-          );
-
-          // Insert or reactivate selected services
-          for (const row of serviceRows.rows) {
-            if (!activeSlugs.has(row.slug)) continue;
+        for (const srow of serviceRows.rows) {
+          for (const crow of cityRows.rows) {
             await client.query(
               `INSERT INTO provider_services (provider_id, service_id, location_id, active)
                VALUES ($1, $2, $3, true)
                ON CONFLICT (provider_id, service_id, location_id)
                DO UPDATE SET active = true, updated_at = now()`,
-              [providerId, row.id, bogotaId]
+              [providerId, srow.id, crow.id]
             );
           }
         }
-      } else {
-        // Deactivate all
-        await client.query(
-          `UPDATE provider_services SET active = false, updated_at = now()
-           WHERE provider_id = $1`,
-          [providerId]
-        );
       }
 
       await client.query('COMMIT');

@@ -80,11 +80,23 @@ const canonicalUrl = `${siteOrigin}/panel/perfil`;
 
       <section style="margin-top:18px; border:1px solid #ddd; border-radius:14px; padding:16px;">
         <h2 style="margin-top:0;">Servicios ofrecidos</h2>
-        <p style="margin-top:0;">Selecciona los servicios que ofrece tu negocio en Bogota.</p>
-        <div id="services-checkboxes" style="display:grid; grid-template-columns:repeat(auto-fit,minmax(200px,1fr)); gap:8px; margin-bottom:12px;">
-          Cargando servicios...
+        <p style="margin-top:0;">Selecciona los servicios que ofrece tu negocio y las ciudades donde operas.</p>
+
+        <div style="margin-bottom:12px;">
+          <h3 style="font-size:14px; margin:0 0 6px;">Ciudades</h3>
+          <div id="cities-checkboxes" style="display:flex; gap:12px; flex-wrap:wrap;">
+            Cargando ciudades...
+          </div>
         </div>
-        <button type="button" id="save-services-btn">Guardar servicios</button>
+
+        <div style="margin-bottom:12px;">
+          <h3 style="font-size:14px; margin:0 0 6px;">Servicios</h3>
+          <div id="services-checkboxes" style="display:grid; grid-template-columns:repeat(auto-fit,minmax(200px,1fr)); gap:8px;">
+            Cargando servicios...
+          </div>
+        </div>
+
+        <button type="button" id="save-services-btn">Guardar servicios y ciudades</button>
         <p id="services-status" style="margin:8px 0 0; font-size:14px;"></p>
       </section>
 
@@ -260,12 +272,16 @@ const canonicalUrl = `${siteOrigin}/panel/perfil`;
           setStatus('Perfil actualizado correctamente.', 'ok');
       });
 
-      // ── Services management ─────────────────────────────────────────
+      // ── Services & Cities management ────────────────────────────────
       type ServiceItem = { id: string; slug: string; name: string; status: string };
+      type LocationItem = { id: string; slug: string; name: string; type: string };
       let availableServices: ServiceItem[] = [];
+      let availableCities: LocationItem[] = [];
       let currentServiceSlugs: string[] = [];
+      let currentCitySlugs: string[] = ['bogota'];
 
       const servicesContainer = document.querySelector<HTMLElement>('#services-checkboxes');
+      const citiesContainer = document.querySelector<HTMLElement>('#cities-checkboxes');
       const saveServicesBtn = document.querySelector<HTMLButtonElement>('#save-services-btn');
       const servicesStatusEl = document.querySelector<HTMLElement>('#services-status');
 
@@ -286,25 +302,41 @@ const canonicalUrl = `${siteOrigin}/panel/perfil`;
         }).join('');
       }
 
+      function renderCityCheckboxes() {
+        if (!citiesContainer) return;
+        citiesContainer.innerHTML = availableCities.map((city) => {
+          const checked = currentCitySlugs.includes(city.slug) ? ' checked' : '';
+          return `<label style="font-size:14px;">
+            <input type="checkbox" name="city_slug" value="${city.slug}"${checked} />
+            ${city.name}
+          </label>`;
+        }).join('');
+      }
+
       saveServicesBtn?.addEventListener('click', async () => {
         const session = await ensureProviderSession({ redirectToLogin: true });
         if (!session.ok) return;
 
-        const checked = Array.from(
+        const checkedServices = Array.from(
           servicesContainer?.querySelectorAll<HTMLInputElement>('input[name="service_slug"]:checked') ?? []
+        ).map((el) => el.value);
+
+        const checkedCities = Array.from(
+          citiesContainer?.querySelectorAll<HTMLInputElement>('input[name="city_slug"]:checked') ?? []
         ).map((el) => el.value);
 
         const result = await apiRequest('/api/provider/me/services', {
           method: 'PUT',
           headers: { 'Content-Type': 'application/json', ...providerAuthHeaders() },
-          body: JSON.stringify({ services: checked })
+          body: JSON.stringify({ services: checkedServices, cities: checkedCities })
         });
 
         if (result.ok) {
-          currentServiceSlugs = checked;
-          setServicesStatus('Servicios guardados.', 'ok');
+          currentServiceSlugs = checkedServices;
+          currentCitySlugs = checkedCities;
+          setServicesStatus('Servicios y ciudades guardados.', 'ok');
         } else {
-          setServicesStatus('Error al guardar servicios.', 'error');
+          setServicesStatus('Error al guardar.', 'error');
         }
       });
 
@@ -312,23 +344,25 @@ const canonicalUrl = `${siteOrigin}/panel/perfil`;
         const session = await ensureProviderSession({ redirectToLogin: true });
         if (!session.ok) return;
 
-        // Load available services
-        const svcResult = await apiRequest<ServiceItem[]>('/api/admin/services', {
-          headers: { ...providerAuthHeaders() }
-        });
+        const [svcResult, locResult, profileResult] = await Promise.all([
+          apiRequest<ServiceItem[]>('/api/admin/services', { headers: { ...providerAuthHeaders() } }),
+          apiRequest<LocationItem[]>('/api/locations?type=city', { headers: { ...providerAuthHeaders() } }),
+          apiRequest<{ services: string[]; cities?: string[] }>('/api/provider/me', { headers: { ...providerAuthHeaders() } })
+        ]);
+
         if (svcResult.ok && svcResult.data) {
           availableServices = svcResult.data.filter((s) => s.status === 'active');
         }
-
-        // Load provider's current services
-        const profileResult = await apiRequest<{ services: string[] }>('/api/provider/me', {
-          headers: { ...providerAuthHeaders() }
-        });
+        if (locResult.ok && locResult.data) {
+          availableCities = locResult.data;
+        }
         if (profileResult.ok && profileResult.data) {
           currentServiceSlugs = profileResult.data.services ?? [];
+          currentCitySlugs = profileResult.data.cities ?? ['bogota'];
         }
 
         renderServiceCheckboxes();
+        renderCityCheckboxes();
       }
 
       applyTemplatePreview(templateSelect?.value);

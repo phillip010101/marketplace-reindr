@@ -3,6 +3,7 @@ import { cors } from 'hono/cors';
 import { adminRoute } from './routes/admin';
 import { authRoute } from './routes/auth';
 import { leadsRoute } from './routes/leads';
+import { locationsRoute } from './routes/locations';
 import { providerRoute } from './routes/provider';
 import { providersRoute } from './routes/providers';
 import { servicesRoute } from './routes/services';
@@ -34,6 +35,7 @@ export function createApp(): Hono {
 
   app.route('/api/auth', authRoute);
   app.route('/api/leads', leadsRoute);
+  app.route('/api/locations', locationsRoute);
   app.route('/api/provider', providerRoute);
   app.route('/api/providers', providersRoute);
   app.route('/api/services', servicesRoute);
