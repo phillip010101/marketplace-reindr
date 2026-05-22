@@ -60,12 +60,11 @@ const canonicalUrl = `${siteOrigin}/panel`;
       </section>
 
       <section style="margin-top:24px; border:1px solid #ddd; border-radius:12px; padding:16px;">
-        <h2 style="margin-top:0;">Recomendaciones operativas</h2>
-        <ul>
-          <li>Actualiza tu perfil para mejorar conversion en solicitudes publicas.</li>
-          <li>Responde leads nuevos en menos de 24 horas.</li>
-          <li>Registra cotizacion solo cuando tengas alcance y tiempos claros.</li>
-        </ul>
+        <h2 style="margin-top:0;">Completitud del perfil</h2>
+        <div id="profile-checklist" style="display:grid; gap:8px;">
+          Cargando...
+        </div>
+        <p style="margin-top:12px;"><a href="/panel/perfil">Ir al editor de perfil</a></p>
       </section>
     </main>
 
@@ -135,6 +134,53 @@ const canonicalUrl = `${siteOrigin}/panel`;
         setStatus(`Sesion activa. Oportunidades cargadas: ${metrics.total}.`, 'ok');
       }
 
+      type ProviderProfile = {
+        display_name?: string;
+        description?: string;
+        phone?: string;
+        services?: string[];
+        template_id?: string;
+      };
+
+      async function refreshChecklist() {
+        const checklist = document.querySelector('#profile-checklist');
+        if (!checklist) return;
+
+        const session = await ensureProviderSession({ redirectToLogin: true });
+        if (!session.ok) return;
+
+        const result = await apiRequest<ProviderProfile>('/api/provider/me', {
+          headers: { ...providerAuthHeaders() }
+        });
+
+        if (!result.ok || !result.data) {
+          checklist.innerHTML = '<p>No se pudo cargar el perfil.</p>';
+          return;
+        }
+
+        const p = result.data;
+        const items = [
+          { label: 'Nombre comercial', done: !!(p.display_name && p.display_name.length >= 2) },
+          { label: 'Descripcion', done: !!(p.description && p.description.length >= 10) },
+          { label: 'Telefono o WhatsApp', done: !!p.phone },
+          { label: 'Plantilla visual', done: !!(p.template_id && p.template_id !== 'craft-paper') },
+          { label: 'Servicios ofrecidos', done: !!(p.services && p.services.length > 0) }
+        ];
+
+        const doneCount = items.filter(i => i.done).length;
+        const pct = Math.round((doneCount / items.length) * 100);
+
+        checklist.innerHTML = `
+          <div style="margin-bottom:8px;">
+            <strong>${doneCount}/${items.length} completado (${pct}%)</strong>
+            <div style="background:#e0e0e0; border-radius:4px; height:8px; margin-top:4px;">
+              <div style="background:#0b5d1e; border-radius:4px; height:8px; width:${pct}%;"></div>
+            </div>
+          </div>
+          ${items.map(i => `<div style="font-size:14px;">${i.done ? '✅' : '⬜'} ${i.label}${i.done ? '' : ' <a href="/panel/perfil" style="font-size:12px;">(completar)</a>'}</div>`).join('')}
+        `;
+      }
+
       logoutButton?.addEventListener('click', () => {
         clearStoredAccessToken();
         if (metricNew) metricNew.textContent = '-';
@@ -145,6 +191,7 @@ const canonicalUrl = `${siteOrigin}/panel`;
       });
 
       refreshMetrics();
+      refreshChecklist();
     </script>
   </body>
 </html>

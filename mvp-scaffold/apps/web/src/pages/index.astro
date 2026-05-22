@@ -1,16 +1,37 @@
 ---
-export const prerender = true;
-import { SERVICES } from '../data/catalog';
+export const prerender = false;
+
+type ServiceItem = { id: string; slug: string; name: string; description: string; status: string };
+type ProviderItem = { id: string; slug: string; display_name: string; description: string; template_id: string };
+
+const apiBase = import.meta.env.PUBLIC_API_BASE_URL ?? 'http://localhost:8787';
 const siteOrigin = Astro.site ? new URL(Astro.site).origin : 'https://apps.reindr.org';
-const canonicalUrl = `${siteOrigin}/`;
+
+let services: ServiceItem[] = [];
+let providers: ProviderItem[] = [];
+
+try {
+  const [svcRes, provRes] = await Promise.all([
+    fetch(`${apiBase}/api/services`),
+    fetch(`${apiBase}/api/providers?city=bogota`)
+  ]);
+  if (svcRes.ok) {
+    const json = await svcRes.json();
+    services = (json.data ?? []).filter((s: ServiceItem) => s.status === 'active');
+  }
+  if (provRes.ok) {
+    const json = await provRes.json();
+    providers = (json.data ?? []).slice(0, 3) as ProviderItem[];
+  }
+} catch { /* static fallback */ }
 ---
 
 <html lang="es">
   <head>
     <meta charset="utf-8" />
-    <title>Red de servicios conectados | Reindr Marketplace MVP</title>
+    <title>Red de servicios conectados | Reindr Marketplace</title>
     <meta name="description" content="Encuentra proveedores y solicita cotizaciones para servicios relacionados en tu ciudad." />
-    <link rel="canonical" href={canonicalUrl} />
+    <link rel="canonical" href={`${siteOrigin}/`} />
     <meta name="viewport" content="width=device-width" />
   </head>
   <body>
@@ -27,10 +48,10 @@ const canonicalUrl = `${siteOrigin}/`;
       </section>
 
       <section style="margin-top: 48px;">
-        <h2>Servicios iniciales</h2>
-        <p><a href="/servicios">Ver todos los servicios</a></p>
+        <h2>Servicios disponibles</h2>
+        <p><a href="/servicios">Ver todos los servicios ({services.length})</a></p>
         <div style="display: grid; gap: 12px; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));">
-          {SERVICES.slice(0, 6).map((service) => (
+          {services.slice(0, 6).map((service) => (
             <a href={`/bogota/${service.slug}`} style="border: 1px solid #ddd; border-radius: 12px; padding: 16px; text-decoration: none; color: inherit;">
               <strong>{service.name}</strong>
               <p>Ver proveedores en Bogota</p>
@@ -38,6 +59,20 @@ const canonicalUrl = `${siteOrigin}/`;
           ))}
         </div>
       </section>
+
+      {providers.length > 0 ? (
+        <section style="margin-top: 48px;">
+          <h2>Proveedores destacados</h2>
+          <div style="display: grid; gap: 12px; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));">
+            {providers.map((p) => (
+              <a href={`/proveedores/${p.slug}`} style="border: 1px solid #ddd; border-radius: 12px; padding: 16px; text-decoration: none; color: inherit;">
+                <strong>{p.display_name}</strong>
+                <p style="font-size:14px; opacity:0.7;">{p.description?.slice(0, 100)}</p>
+              </a>
+            ))}
+          </div>
+        </section>
+      ) : null}
     </main>
   </body>
 </html>

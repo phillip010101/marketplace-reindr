@@ -2,11 +2,29 @@ import { Hono } from 'hono';
 import { z } from 'zod';
 import { getRelatedServices } from '../../../../packages/core/src/lead-routing';
 import { errorResponse } from '../lib/api-errors';
+import { getPool } from '../lib/db';
 import { resolveServiceRelations } from '../lib/service-relations';
 
 export const servicesRoute = new Hono();
 
 const LimitSchema = z.coerce.number().int().min(1).max(20).optional().default(8);
+
+servicesRoute.get('/', async (c) => {
+  try {
+    const pool = getPool();
+    const result = await pool.query<{ id: string; slug: string; name: string; description: string; status: string }>(
+      `SELECT id::text, slug, name, description, status FROM services WHERE status = 'active' ORDER BY name ASC`
+    );
+
+    if (result.rowCount && result.rowCount > 0) {
+      return c.json({ ok: true, data: result.rows });
+    }
+
+    return c.json({ ok: true, data: [] });
+  } catch {
+    return c.json({ ok: true, data: [] });
+  }
+});
 
 servicesRoute.get('/:slug/related', async (c) => {
   const slug = c.req.param('slug').trim().toLowerCase();

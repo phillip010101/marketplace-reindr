@@ -1,16 +1,28 @@
 ---
-export const prerender = true;
-import { SERVICES } from '../../data/catalog';
+export const prerender = false;
+
+type ServiceItem = { id: string; slug: string; name: string; description: string; status: string };
+
+const apiBase = import.meta.env.PUBLIC_API_BASE_URL ?? 'http://localhost:8787';
 const siteOrigin = Astro.site ? new URL(Astro.site).origin : 'https://apps.reindr.org';
-const canonicalUrl = `${siteOrigin}/servicios`;
+
+let services: ServiceItem[] = [];
+
+try {
+  const res = await fetch(`${apiBase}/api/services`);
+  if (res.ok) {
+    const json = await res.json();
+    services = (json.data ?? []) as ServiceItem[];
+  }
+} catch { /* empty fallback */ }
 ---
 
 <html lang="es">
   <head>
     <meta charset="utf-8" />
-    <title>Servicios | Reindr Marketplace MVP</title>
+    <title>Servicios | Reindr Marketplace</title>
     <meta name="description" content="Explora servicios disponibles para solicitar cotizaciones en tu ciudad." />
-    <link rel="canonical" href={canonicalUrl} />
+    <link rel="canonical" href={`${siteOrigin}/servicios`} />
     <meta name="viewport" content="width=device-width" />
   </head>
   <body>
@@ -19,15 +31,19 @@ const canonicalUrl = `${siteOrigin}/servicios`;
       <h1>Servicios</h1>
       <p>Selecciona un servicio para ver proveedores y solicitar una cotizacion.</p>
 
-      <div style="display: grid; gap: 12px; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); margin-top: 24px;">
-        {SERVICES.map((service) => (
-          <article style="border: 1px solid #ddd; border-radius: 12px; padding: 16px;">
-            <h2 style="margin-top: 0; font-size: 18px;">{service.name}</h2>
-            <p>{service.description}</p>
-            <a href={`/servicios/${service.slug}`}>Ver detalle</a>
-          </article>
-        ))}
-      </div>
+      {services.length === 0 ? (
+        <p>No hay servicios disponibles en este momento.</p>
+      ) : (
+        <div style="display: grid; gap: 12px; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); margin-top: 24px;">
+          {services.map((service) => (
+            <article style="border: 1px solid #ddd; border-radius: 12px; padding: 16px;">
+              <h2 style="margin-top: 0; font-size: 18px;">{service.name}</h2>
+              <p>{service.description}</p>
+              <a href={`/servicios/${service.slug}`}>Ver detalle</a>
+            </article>
+          ))}
+        </div>
+      )}
     </main>
   </body>
 </html>
