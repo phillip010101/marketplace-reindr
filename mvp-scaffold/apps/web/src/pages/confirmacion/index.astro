@@ -1,0 +1,60 @@
+---
+export const prerender = true;
+const siteOrigin = Astro.site ? new URL(Astro.site).origin : 'https://apps.reindr.org';
+---
+
+<html lang="es">
+  <head>
+    <meta charset="utf-8" />
+    <title>Solicitud enviada | Reindr Marketplace</title>
+    <meta name="description" content="Tu solicitud de cotizacion fue enviada con exito." />
+    <meta name="robots" content="noindex, nofollow" />
+    <link rel="canonical" href={`${siteOrigin}/confirmacion`} />
+    <meta name="viewport" content="width=device-width" />
+    <style>
+      body { margin:0; background:#f2f4f7; font-family:system-ui,sans-serif; }
+      .card { background:#fff; border:1px solid #dde2ea; border-radius:14px; padding:32px; text-align:center; }
+    </style>
+  </head>
+  <body>
+    <main style="min-height:100vh; display:grid; place-items:center; padding:20px;">
+      <div class="card" style="max-width:520px;">
+        <h1 style="margin-top:0; color:#0b5d1e;">Solicitud enviada</h1>
+        <p style="font-size:18px;">Tu solicitud de cotizacion fue registrada con exito.</p>
+
+        <div id="lead-details" style="margin:24px 0;">
+          <p style="opacity:0.7;">Codigo de seguimiento:</p>
+          <strong id="lead-code" style="font-size:24px; letter-spacing:.05em;">---</strong>
+        </div>
+
+        <p id="opp-count" style="opacity:0.7;"></p>
+
+        <div style="margin-top:24px; padding:16px; background:#f0faf3; border-radius:8px; text-align:left;">
+          <h3 style="margin-top:0;">Que sigue?</h3>
+          <ul style="padding-left:20px;">
+            <li>Los proveedores recibiran tu solicitud</li>
+            <li>Te contactaran por email o WhatsApp</li>
+            <li>Recibiras cotizaciones de los servicios solicitados</li>
+          </ul>
+        </div>
+
+        <div style="margin-top:24px;">
+          <a href="/" style="color:#0b5d1e;">Volver al inicio</a>
+        </div>
+      </div>
+    </main>
+
+    <script>
+      const params = new URLSearchParams(window.location.search);
+      const code = params.get('code') ?? '';
+      const count = params.get('opportunities') ?? '0';
+      const elCode = document.querySelector('#lead-code');
+      const elCount = document.querySelector('#opp-count');
+      if (elCode && code) elCode.textContent = code;
+        else if (elCode) elCode.textContent = 'Procesando...';
+      if (elCount) elCount.textContent = count !== '0'
+        ? `Se notifico a ${count} proveedor(es).`
+        : '';
+    </script>
+  </body>
+</html>

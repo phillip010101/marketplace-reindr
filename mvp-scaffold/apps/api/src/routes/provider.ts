@@ -46,7 +46,7 @@ const CreateQuoteSchema = z.object({
   message: z.string().max(2000).optional()
 });
 
-type ProviderIdRow = { id: string };
+type ProviderIdRow = { id: string; status?: string };
 type ProviderProfileRow = {
   id: string;
   slug: string;
@@ -112,8 +112,8 @@ type ProviderLeadDetailRow = {
 
 async function resolveProviderIdFromAccount(accountId: string): Promise<string> {
   const pool = getPool();
-  const result = await pool.query<ProviderIdRow>(
-    `SELECT id
+  const result = await pool.query<ProviderIdRow & { status: string }>(
+    `SELECT id, status
      FROM providers
      WHERE account_id = $1
      LIMIT 1`,
@@ -126,6 +126,14 @@ async function resolveProviderIdFromAccount(accountId: string): Promise<string> 
       message: 'La cuenta autenticada no tiene perfil provider asociado.'
     });
   }
+
+  if (result.rows[0].status === 'suspended') {
+    throw new ApiRequestError(403, {
+      code: 'FORBIDDEN',
+      message: 'Tu perfil de proveedor esta suspendido. Contacta al administrador.'
+    });
+  }
+
   return result.rows[0].id;
 }
 
@@ -180,6 +188,13 @@ async function fetchProviderProfileByAccount(accountId: string): Promise<Provide
     throw new ApiRequestError(403, {
       code: 'FORBIDDEN',
       message: 'La cuenta autenticada no tiene perfil provider asociado.'
+    });
+  }
+
+  if (result.rows[0].status === 'suspended') {
+    throw new ApiRequestError(403, {
+      code: 'FORBIDDEN',
+      message: 'Tu perfil de proveedor esta suspendido. Contacta al administrador.'
     });
   }
 

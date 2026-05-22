@@ -146,6 +146,37 @@ const canonicalUrl = `${siteOrigin}/${citySlug}/${serviceSlug}`;
     <script is:inline>
       const form = document.querySelector('#lead-form');
       if (form) {
+        // Prevent default form action (raw JSON), submit via JS instead
+        form.addEventListener('submit', async (event) => {
+          event.preventDefault();
+          const data = new FormData(form);
+          const body = new URLSearchParams();
+          for (const [key, val] of data.entries()) {
+            if (key === 'requested_service_slugs') {
+              body.append(key, String(val));
+            } else {
+              body.set(key, String(val));
+            }
+          }
+
+          try {
+            const res = await fetch(form.getAttribute('action') ?? '/api/leads', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+              body: body.toString()
+            });
+            const json = await res.json();
+            if (json.ok && json.data) {
+              const code = json.data.lead_public_code ?? '';
+              const opps = json.data.opportunities_count ?? 0;
+              window.location.href = `/confirmacion?code=${encodeURIComponent(code)}&opportunities=${opps}`;
+            }
+          } catch {
+            // Fallback to direct form submission
+            form.submit();
+          }
+        });
+
         const steps = Array.from(form.querySelectorAll('[data-step]'));
         const showStep = (stepNumber) => {
           for (const stepEl of steps) {
