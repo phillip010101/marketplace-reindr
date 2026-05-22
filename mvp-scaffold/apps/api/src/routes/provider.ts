@@ -506,6 +506,107 @@ providerRoute.post('/leads/:opportunityId/quote', async (c) => {
   }
 });
 
+// ── Provider Services Management ──────────────────────────────────
+
+const UpdateProviderServicesSchema = z.object({
+  services: z.array(z.string().min(2).max(80)).max(50)
+});
+
+providerRoute.put('/me/services', async (c) => {
+  try {
+    const actor = requireProviderActor(c);
+    const providerId = await resolveProviderIdFromAccount(actor.accountId);
+    const parsed = UpdateProviderServicesSchema.safeParse(await c.req.json());
+    if (!parsed.success) {
+      const failure = errorResponse(400, {
+        code: 'VALIDATION_ERROR',
+        message: 'Datos invalidos',
+        fields: parsed.error.flatten().fieldErrors
+      });
+      return c.json(failure.body, failure.status);
+    }
+
+    const pool = getPool();
+    const client = await pool.connect();
+
+    try {
+      await client.query('BEGIN');
+
+      const serviceSlugs = parsed.data.services;
+      if (serviceSlugs.length > 0) {
+        const slugList = serviceSlugs.map((_, i) => `$${i + 1}`).join(', ');
+        const serviceRows = await client.query<{ id: string; slug: string }>(
+          `SELECT id, slug FROM services WHERE slug IN (${slugList}) AND status = 'active'`,
+          serviceSlugs
+        );
+
+        const activeSlugs = new Set(serviceRows.rows.map((r) => r.slug));
+        const bogotaResult = await client.query<{ id: string }>(
+          `SELECT id FROM locations WHERE slug = 'bogota' AND type = 'city' LIMIT 1`
+        );
+        const bogotaId = bogotaResult.rows[0]?.id;
+
+        if (bogotaId) {
+          // Deactivate all existing services
+          await client.query(
+            `UPDATE provider_services SET active = false, updated_at = now()
+             WHERE provider_id = $1`,
+            [providerId]
+          );
+
+          // Insert or reactivate selected services
+          for (const row of serviceRows.rows) {
+            if (!activeSlugs.has(row.slug)) continue;
+            await client.query(
+              `INSERT INTO provider_services (provider_id, service_id, location_id, active)
+               VALUES ($1, $2, $3, true)
+               ON CONFLICT (provider_id, service_id, location_id)
+               DO UPDATE SET active = true, updated_at = now()`,
+              [providerId, row.id, bogotaId]
+            );
+          }
+        }
+      } else {
+        // Deactivate all
+        await client.query(
+          `UPDATE provider_services SET active = false, updated_at = now()
+           WHERE provider_id = $1`,
+          [providerId]
+        );
+      }
+
+      await client.query('COMMIT');
+
+      const current = await fetchProviderProfileByAccount(actor.accountId);
+      const services = current.service_slugs ?? [];
+
+      return c.json({
+        ok: true,
+        data: { services }
+      });
+    } catch {
+      await client.query('ROLLBACK');
+      throw new ApiRequestError(500, {
+        code: 'INTERNAL_ERROR',
+        message: 'No fue posible actualizar servicios.'
+      });
+    } finally {
+      client.release();
+    }
+  } catch (error) {
+    if (error instanceof ApiRequestError) {
+      const failure = errorResponse(error.status, error.payload);
+      return c.json(failure.body, failure.status);
+    }
+    console.error('providerRoute.put(/me/services) failed', error);
+    const failure = errorResponse(500, {
+      code: 'INTERNAL_ERROR',
+      message: 'No fue posible actualizar servicios.'
+    });
+    return c.json(failure.body, failure.status);
+  }
+});
+
 providerRoute.get('/metrics', async (c) => {
   try {
     const actor = requireProviderActor(c);

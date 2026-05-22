@@ -79,6 +79,16 @@ const canonicalUrl = `${siteOrigin}/panel/perfil`;
       </section>
 
       <section style="margin-top:18px; border:1px solid #ddd; border-radius:14px; padding:16px;">
+        <h2 style="margin-top:0;">Servicios ofrecidos</h2>
+        <p style="margin-top:0;">Selecciona los servicios que ofrece tu negocio en Bogota.</p>
+        <div id="services-checkboxes" style="display:grid; grid-template-columns:repeat(auto-fit,minmax(200px,1fr)); gap:8px; margin-bottom:12px;">
+          Cargando servicios...
+        </div>
+        <button type="button" id="save-services-btn">Guardar servicios</button>
+        <p id="services-status" style="margin:8px 0 0; font-size:14px;"></p>
+      </section>
+
+      <section style="margin-top:18px; border:1px solid #ddd; border-radius:14px; padding:16px;">
         <h2 style="margin-top:0;">Vista previa de plantilla</h2>
         <p style="margin-top:0;">Previsualiza combinacion de fuente, color y fondo antes de guardar.</p>
         <article
@@ -246,12 +256,84 @@ const canonicalUrl = `${siteOrigin}/panel/perfil`;
           return;
         }
 
-        fillForm((result.data ?? payload) as ProviderProfilePayload);
-        setStatus('Perfil actualizado correctamente.', 'ok');
+          fillForm((result.data ?? payload) as ProviderProfilePayload);
+          setStatus('Perfil actualizado correctamente.', 'ok');
       });
+
+      // ── Services management ─────────────────────────────────────────
+      type ServiceItem = { id: string; slug: string; name: string; status: string };
+      let availableServices: ServiceItem[] = [];
+      let currentServiceSlugs: string[] = [];
+
+      const servicesContainer = document.querySelector<HTMLElement>('#services-checkboxes');
+      const saveServicesBtn = document.querySelector<HTMLButtonElement>('#save-services-btn');
+      const servicesStatusEl = document.querySelector<HTMLElement>('#services-status');
+
+      function setServicesStatus(message: string, tone: 'neutral' | 'error' | 'ok' = 'neutral') {
+        if (!servicesStatusEl) return;
+        servicesStatusEl.textContent = message;
+        servicesStatusEl.style.color = tone === 'error' ? '#a40000' : tone === 'ok' ? '#0b5d1e' : '#333';
+      }
+
+      function renderServiceCheckboxes() {
+        if (!servicesContainer) return;
+        servicesContainer.innerHTML = availableServices.map((svc) => {
+          const checked = currentServiceSlugs.includes(svc.slug) ? ' checked' : '';
+          return `<label style="font-size:14px;">
+            <input type="checkbox" name="service_slug" value="${svc.slug}"${checked} />
+            ${svc.name}
+          </label>`;
+        }).join('');
+      }
+
+      saveServicesBtn?.addEventListener('click', async () => {
+        const session = await ensureProviderSession({ redirectToLogin: true });
+        if (!session.ok) return;
+
+        const checked = Array.from(
+          servicesContainer?.querySelectorAll<HTMLInputElement>('input[name="service_slug"]:checked') ?? []
+        ).map((el) => el.value);
+
+        const result = await apiRequest('/api/provider/me/services', {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json', ...providerAuthHeaders() },
+          body: JSON.stringify({ services: checked })
+        });
+
+        if (result.ok) {
+          currentServiceSlugs = checked;
+          setServicesStatus('Servicios guardados.', 'ok');
+        } else {
+          setServicesStatus('Error al guardar servicios.', 'error');
+        }
+      });
+
+      async function loadServices() {
+        const session = await ensureProviderSession({ redirectToLogin: true });
+        if (!session.ok) return;
+
+        // Load available services
+        const svcResult = await apiRequest<ServiceItem[]>('/api/admin/services', {
+          headers: { ...providerAuthHeaders() }
+        });
+        if (svcResult.ok && svcResult.data) {
+          availableServices = svcResult.data.filter((s) => s.status === 'active');
+        }
+
+        // Load provider's current services
+        const profileResult = await apiRequest<{ services: string[] }>('/api/provider/me', {
+          headers: { ...providerAuthHeaders() }
+        });
+        if (profileResult.ok && profileResult.data) {
+          currentServiceSlugs = profileResult.data.services ?? [];
+        }
+
+        renderServiceCheckboxes();
+      }
 
       applyTemplatePreview(templateSelect?.value);
       loadProfile();
+      loadServices();
     </script>
   </body>
 </html>
