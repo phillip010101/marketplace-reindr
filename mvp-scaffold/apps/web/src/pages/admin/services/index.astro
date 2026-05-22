@@ -1,0 +1,138 @@
+---
+export const prerender = true;
+const siteOrigin = Astro.site ? new URL(Astro.site).origin : 'https://apps.reindr.org';
+const canonicalUrl = `${siteOrigin}/admin/services`;
+---
+
+<html lang="es">
+  <head>
+    <meta charset="utf-8" />
+    <title>Servicios | Admin Reindr</title>
+    <meta name="description" content="Gestion de servicios del marketplace." />
+    <meta name="robots" content="noindex, nofollow" />
+    <link rel="canonical" href={canonicalUrl} />
+    <meta name="viewport" content="width=device-width" />
+    <style>
+      body { margin:0; background:#1a1a2e; color:#e0e0e0; font-family:system-ui,sans-serif; }
+      nav a { color:#e94560; text-decoration:none; margin-right:16px; }
+      .card { background:#16213e; border:1px solid #0f3460; border-radius:12px; padding:16px; margin-bottom:16px; }
+      table { width:100%; border-collapse:collapse; margin-top:8px; }
+      th,td { text-align:left; padding:8px; border-bottom:1px solid #0f3460; font-size:13px; }
+      th { opacity:0.6; }
+      .badge { display:inline-block; padding:2px 8px; border-radius:10px; font-size:11px; }
+      input,select,button { padding:6px 10px; border:1px solid #0f3460; border-radius:4px; background:#1a1a2e; color:#ccc; }
+    </style>
+  </head>
+  <body>
+    <main style="max-width:1200px; margin:0 auto; padding:32px 20px;">
+      <header style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; margin-bottom:24px;">
+        <h1 style="margin:0; color:#e94560;">Servicios</h1>
+        <nav>
+          <a href="/admin">Dashboard</a>
+          <a href="/admin/leads">Leads</a>
+          <a href="/admin/providers">Proveedores</a>
+          <a href="/admin/services">Servicios</a>
+          <a href="/admin/reviews">Reviews</a>
+          <button id="logout-btn" style="background:#e94560; color:#fff; border:none; border-radius:6px; padding:6px 14px; cursor:pointer;">Salir</button>
+        </nav>
+      </header>
+
+      <div class="card">
+        <h3 style="margin-top:0;">Nuevo servicio</h3>
+        <form id="create-service-form" style="display:grid; gap:8px; max-width:480px;">
+          <input name="slug" placeholder="slug (ej. cajas-personalizadas)" required />
+          <input name="name" placeholder="Nombre" required />
+          <input name="description" placeholder="Descripcion" required />
+          <input name="base_lead_price" placeholder="Precio base lead" type="number" value="0" />
+          <button type="submit" style="background:#4ecca3; color:#000; border:none; padding:8px; border-radius:4px; cursor:pointer;">Crear servicio</button>
+        </form>
+        <p id="create-status" style="font-size:13px;"></p>
+      </div>
+
+      <div id="services-container" style="margin-top:16px;">Cargando...</div>
+    </main>
+
+    <script>
+      import {
+        apiRequest, ensureAdminSession, clearStoredAccessToken,
+        adminAuthHeaders, escapeHtml
+      } from '../../../scripts/admin-panel-client';
+
+      type ServiceRow = {
+        id:string; slug:string; name:string; description:string;
+        status:'active'|'inactive'; base_lead_price:number;
+      };
+
+      document.querySelector('#logout-btn')?.addEventListener('click', () => {
+        clearStoredAccessToken(); window.location.href = '/admin/login';
+      });
+
+      function renderServices(services:ServiceRow[]) {
+        const c = document.querySelector('#services-container');
+        if (!c) return;
+        if (!services.length) { c.innerHTML = '<p>No hay servicios.</p>'; return; }
+        c.innerHTML = `<table><thead><tr>
+          <th>Nombre</th><th>Slug</th><th>Descripcion</th><th>Precio</th><th>Estado</th><th></th>
+        </tr></thead><tbody>
+        ${services.map(s => `<tr>
+          <td><strong>${escapeHtml(s.name)}</strong></td>
+          <td>${escapeHtml(s.slug)}</td>
+          <td style="max-width:200px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">${escapeHtml(s.description??'')}</td>
+          <td>$${s.base_lead_price}</td>
+          <td><span class="badge" style="background:${s.status==='active'?'#4ecca3':'#ffc107'}; color:#000;">${s.status}</span></td>
+          <td>
+            <button onclick="toggleService('${s.id}','${s.status}')" style="background:#0f3460; color:#fff; border:none; padding:4px 8px; border-radius:4px; cursor:pointer;">
+              ${s.status==='active'?'Desactivar':'Activar'}
+            </button>
+          </td>
+        </tr>`).join('')}
+        </tbody></table>`;
+      }
+
+      (window as any).toggleService = async function(id:string, currentStatus:string) {
+        const session = await ensureAdminSession({ redirectToLogin: true });
+        if (!session.ok) return;
+        const newStatus = currentStatus === 'active' ? 'inactive' : 'active';
+        await apiRequest(`/api/admin/services/${id}`, {
+          method:'PATCH',
+          headers:{...adminAuthHeaders(),'Content-Type':'application/json'},
+          body: JSON.stringify({ status: newStatus })
+        });
+        loadServices();
+      };
+
+      async function loadServices() {
+        const session = await ensureAdminSession({ redirectToLogin: true });
+        if (!session.ok) return;
+        const result = await apiRequest<ServiceRow[]>('/api/admin/services', {
+          headers:{...adminAuthHeaders()}
+        });
+        if (result.ok && result.data) renderServices(result.data);
+      }
+
+      document.querySelector('#create-service-form')?.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const session = await ensureAdminSession({ redirectToLogin: true });
+        if (!session.ok) return;
+        const fd = new FormData(e.target as HTMLFormElement);
+        const statusEl = document.querySelector('#create-status');
+        const result = await apiRequest('/api/admin/services', {
+          method:'POST',
+          headers:{...adminAuthHeaders(),'Content-Type':'application/json'},
+          body: JSON.stringify({
+            slug: fd.get('slug'), name: fd.get('name'),
+            description: fd.get('description'),
+            base_lead_price: Number(fd.get('base_lead_price')??0)
+          })
+        });
+        if (statusEl) {
+          statusEl.textContent = result.ok ? 'Servicio creado.' : 'Error al crear.';
+          statusEl.style.color = result.ok ? '#4ecca3' : '#e94560';
+        }
+        if (result.ok) { (e.target as HTMLFormElement).reset(); loadServices(); }
+      });
+
+      loadServices();
+    </script>
+  </body>
+</html>

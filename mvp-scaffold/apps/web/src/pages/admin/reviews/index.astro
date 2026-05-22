@@ -1,0 +1,138 @@
+---
+export const prerender = true;
+const siteOrigin = Astro.site ? new URL(Astro.site).origin : 'https://apps.reindr.org';
+const canonicalUrl = `${siteOrigin}/admin/reviews`;
+---
+
+<html lang="es">
+  <head>
+    <meta charset="utf-8" />
+    <title>Reviews | Admin Reindr</title>
+    <meta name="description" content="Moderacion de reviews del marketplace." />
+    <meta name="robots" content="noindex, nofollow" />
+    <link rel="canonical" href={canonicalUrl} />
+    <meta name="viewport" content="width=device-width" />
+    <style>
+      body { margin:0; background:#1a1a2e; color:#e0e0e0; font-family:system-ui,sans-serif; }
+      nav a { color:#e94560; text-decoration:none; margin-right:16px; }
+      .card { background:#16213e; border:1px solid #0f3460; border-radius:12px; padding:16px; margin-bottom:16px; }
+      table { width:100%; border-collapse:collapse; margin-top:8px; }
+      th,td { text-align:left; padding:8px; border-bottom:1px solid #0f3460; font-size:13px; }
+      th { opacity:0.6; }
+      .badge { display:inline-block; padding:2px 8px; border-radius:10px; font-size:11px; }
+      button { padding:4px 10px; border-radius:4px; border:none; cursor:pointer; margin:2px; font-size:12px; }
+      .stars { color:#ffc107; }
+    </style>
+  </head>
+  <body>
+    <main style="max-width:1200px; margin:0 auto; padding:32px 20px;">
+      <header style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; margin-bottom:24px;">
+        <h1 style="margin:0; color:#e94560;">Moderacion de Reviews</h1>
+        <nav>
+          <a href="/admin">Dashboard</a>
+          <a href="/admin/leads">Leads</a>
+          <a href="/admin/providers">Proveedores</a>
+          <a href="/admin/services">Servicios</a>
+          <a href="/admin/reviews">Reviews</a>
+          <button id="logout-btn" style="background:#e94560; color:#fff; border:none; border-radius:6px; padding:6px 14px; cursor:pointer;">Salir</button>
+        </nav>
+      </header>
+
+      <div id="reviews-container" style="margin-top:16px;">Cargando...</div>
+    </main>
+
+    <script>
+      import {
+        apiRequest, ensureAdminSession, clearStoredAccessToken,
+        adminAuthHeaders, escapeHtml
+      } from '../../../scripts/admin-panel-client';
+
+      type ReviewRow = {
+        id:string; rating:number; title:string; body:string;
+        status:'pending'|'approved'|'rejected'|'flagged';
+        provider_slug:string; provider_name:string;
+      };
+
+      document.querySelector('#logout-btn')?.addEventListener('click', () => {
+        clearStoredAccessToken(); window.location.href = '/admin/login';
+      });
+
+      function stars(n:number) { return '★'.repeat(n)+'☆'.repeat(5-n); }
+
+      function statusBadge(s:string) {
+        const map:Record<string,string> = { approved:'#4ecca3', pending:'#ffc107', rejected:'#e94560', flagged:'#dc3545' };
+        return `<span class="badge" style="background:${map[s]??'#666'}; color:#000;">${s}</span>`;
+      }
+
+      function renderReviews(reviews:ReviewRow[]) {
+        const c = document.querySelector('#reviews-container');
+        if (!c) return;
+        if (!reviews.length) { c.innerHTML = '<p>No hay reviews para moderar.</p>'; return; }
+        c.innerHTML = `<table><thead><tr>
+          <th>Proveedor</th><th>Rating</th><th>Titulo</th><th>Review</th><th>Estado</th><th></th>
+        </tr></thead><tbody>
+        ${reviews.map(r => `<tr>
+          <td><strong>${escapeHtml(r.provider_name??r.provider_slug)}</strong></td>
+          <td><span class="stars">${stars(r.rating)}</span></td>
+          <td>${escapeHtml(r.title??'')}</td>
+          <td style="max-width:200px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">${escapeHtml(r.body)}</td>
+          <td>${statusBadge(r.status)}</td>
+          <td style="white-space:nowrap;">
+            ${r.status!=='approved' ? `<button onclick="moderate('${r.id}','approved')" style="background:#4ecca3;color:#000;">Aprobar</button>` : ''}
+            ${r.status!=='rejected' ? `<button onclick="moderate('${r.id}','rejected')" style="background:#e94560;color:#fff;">Rechazar</button>` : ''}
+            ${r.status!=='flagged' ? `<button onclick="moderate('${r.id}','flagged')" style="background:#dc3545;color:#fff;">Flag</button>` : ''}
+          </td>
+        </tr>`).join('')}
+        </tbody></table>`;
+      }
+
+      (window as any).moderate = async function(id:string, status:string) {
+        const session = await ensureAdminSession({ redirectToLogin: true });
+        if (!session.ok) return;
+        await apiRequest(`/api/admin/reviews/${id}/moderate`, {
+          method:'POST',
+          headers:{...adminAuthHeaders(),'Content-Type':'application/json'},
+          body: JSON.stringify({ status })
+        });
+        loadReviews();
+      };
+
+      async function loadReviews() {
+        const session = await ensureAdminSession({ redirectToLogin: true });
+        if (!session.ok) return;
+
+        const result = await apiRequest<ReviewRow[]>('/api/providers', {
+          headers:{...adminAuthHeaders()}
+        });
+
+        if (!result.ok || !result.data) return;
+
+        const providers = result.data as any[];
+        const allReviews:ReviewRow[] = [];
+
+        for (const p of providers) {
+          const det = await apiRequest<any>(`/api/providers/${p.slug}`, {
+            headers:{...adminAuthHeaders()}
+          });
+          if (det.ok && det.data?.reviews) {
+            for (const r of det.data.reviews) {
+              allReviews.push({
+                id: r.id ?? r.review_id,
+                rating: r.rating,
+                title: r.title,
+                body: r.body,
+                status: r.status,
+                provider_slug: p.slug,
+                provider_name: p.display_name
+              });
+            }
+          }
+        }
+
+        renderReviews(allReviews);
+      }
+
+      loadReviews();
+    </script>
+  </body>
+</html>

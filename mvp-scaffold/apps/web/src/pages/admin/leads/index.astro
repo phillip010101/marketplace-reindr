@@ -1,0 +1,117 @@
+---
+export const prerender = true;
+const siteOrigin = Astro.site ? new URL(Astro.site).origin : 'https://apps.reindr.org';
+const canonicalUrl = `${siteOrigin}/admin/leads`;
+---
+
+<html lang="es">
+  <head>
+    <meta charset="utf-8" />
+    <title>Leads | Admin Reindr</title>
+    <meta name="description" content="Gestion de leads del marketplace." />
+    <meta name="robots" content="noindex, nofollow" />
+    <link rel="canonical" href={canonicalUrl} />
+    <meta name="viewport" content="width=device-width" />
+    <style>
+      body { margin:0; background:#1a1a2e; color:#e0e0e0; font-family:system-ui,sans-serif; }
+      nav a { color:#e94560; text-decoration:none; margin-right:16px; }
+      .card { background:#16213e; border:1px solid #0f3460; border-radius:12px; padding:16px; margin-bottom:16px; }
+      table { width:100%; border-collapse:collapse; margin-top:8px; }
+      th,td { text-align:left; padding:8px; border-bottom:1px solid #0f3460; font-size:13px; }
+      th { opacity:0.6; }
+      .actions button { margin:2px; padding:4px 10px; border-radius:4px; border:none; cursor:pointer; font-size:12px; }
+      .badge { display:inline-block; padding:2px 8px; border-radius:10px; font-size:11px; margin-right:4px; }
+      select,input { padding:6px; border:1px solid #0f3460; border-radius:4px; background:#1a1a2e; color:#ccc; }
+    </style>
+  </head>
+  <body>
+    <main style="max-width:1200px; margin:0 auto; padding:32px 20px;">
+      <header style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; margin-bottom:24px;">
+        <h1 style="margin:0; color:#e94560;">Leads</h1>
+        <nav>
+          <a href="/admin">Dashboard</a>
+          <a href="/admin/leads">Leads</a>
+          <a href="/admin/providers">Proveedores</a>
+          <a href="/admin/services">Servicios</a>
+          <a href="/admin/reviews">Reviews</a>
+          <button id="logout-btn" style="background:#e94560; color:#fff; border:none; border-radius:6px; padding:6px 14px; cursor:pointer;">Salir</button>
+        </nav>
+      </header>
+
+      <div class="card">
+        <div style="display:flex; gap:10px; flex-wrap:wrap; align-items:end;">
+          <label>Estado <select id="filter-status"><option value="">Todos</option><option value="new">Nuevo</option><option value="qualified">Calificado</option><option value="assigned">Asignado</option><option value="in_progress">En progreso</option><option value="closed">Cerrado</option><option value="invalid">Invalido</option></select></label>
+          <button id="btn-refresh" style="background:#0f3460; color:#fff; border:none; padding:8px 16px; border-radius:4px; cursor:pointer;">Filtrar</button>
+        </div>
+      </div>
+
+      <div id="leads-container" style="margin-top:16px;">Cargando...</div>
+    </main>
+
+    <script>
+      import {
+        apiRequest, ensureAdminSession, clearStoredAccessToken,
+        adminAuthHeaders, dateLabel, leadStatusClass, escapeHtml
+      } from '../../../scripts/admin-panel-client';
+
+      type LeadRow = {
+        id:string; public_code:string; client_name:string; client_email:string;
+        client_phone:string; description:string; status:string; city_name:string;
+        primary_service_name:string; opportunities:{id:string;provider_slug:string;provider_name:string;status:string}[];
+        created_at:string;
+      };
+
+      document.querySelector('#logout-btn')?.addEventListener('click', () => {
+        clearStoredAccessToken(); window.location.href = '/admin/login';
+      });
+
+      function renderLeads(leads:LeadRow[]) {
+        const c = document.querySelector('#leads-container');
+        if (!c) return;
+        if (!leads.length) { c.innerHTML = '<p>No hay leads.</p>'; return; }
+        c.innerHTML = `<table><thead><tr>
+          <th>Codigo</th><th>Cliente</th><th>Servicio</th><th>Ciudad</th><th>Estado</th><th>Oportunidades</th><th>Fecha</th><th></th>
+        </tr></thead><tbody>
+        ${leads.map(l => `<tr>
+          <td><strong>${escapeHtml(l.public_code)}</strong></td>
+          <td>${escapeHtml(l.client_name)}<br><small>${escapeHtml(l.client_email)}</small></td>
+          <td>${escapeHtml(l.primary_service_name)}</td>
+          <td>${escapeHtml(l.city_name)}</td>
+          <td><span class="badge" style="background:${leadStatusClass(l.status)}; color:#000;">${l.status}</span></td>
+          <td>${(l.opportunities||[]).map(o =>
+            `<div style="margin:2px 0;"><span class="badge" style="background:#0f3460;">${escapeHtml(o.provider_slug)}</span> ${o.status}</div>`
+          ).join('')}</td>
+          <td style="font-size:12px;">${dateLabel(l.created_at)}</td>
+          <td class="actions">
+            ${(l.opportunities||[]).map(o => `<button onclick="markInvalid('${o.id}')" style="background:#e94560;color:#fff;">Inval</button>`).join('')}
+          </td>
+        </tr>`).join('')}
+        </tbody></table>`;
+      }
+
+      (window as any).markInvalid = async function(oppId:string) {
+        const session = await ensureAdminSession({ redirectToLogin: true });
+        if (!session.ok) return;
+        await apiRequest(`/api/admin/leads/${oppId}/mark-invalid`, {
+          method:'POST',
+          headers:{...adminAuthHeaders(),'Content-Type':'application/json'}
+        });
+        loadLeads();
+      };
+
+      async function loadLeads() {
+        const session = await ensureAdminSession({ redirectToLogin: true });
+        if (!session.ok) return;
+        const status = (document.querySelector('#filter-status') as HTMLSelectElement)?.value ?? '';
+        const qs = status ? `?status=${encodeURIComponent(status)}` : '';
+        const result = await apiRequest<{leads:LeadRow[]}>('/api/admin/leads'+qs, {
+          headers:{...adminAuthHeaders()}
+        });
+        if (result.ok && result.data) renderLeads(result.data.leads);
+      }
+
+      document.querySelector('#btn-refresh')?.addEventListener('click', loadLeads);
+      loadLeads();
+    </script>
+  </body>
+</html>

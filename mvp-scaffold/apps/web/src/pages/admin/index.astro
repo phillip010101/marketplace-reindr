@@ -1,0 +1,140 @@
+---
+export const prerender = true;
+const siteOrigin = Astro.site ? new URL(Astro.site).origin : 'https://apps.reindr.org';
+const canonicalUrl = `${siteOrigin}/admin`;
+---
+
+<html lang="es">
+  <head>
+    <meta charset="utf-8" />
+    <title>Admin Dashboard | Reindr Marketplace</title>
+    <meta name="description" content="Panel de administracion del marketplace Reindr." />
+    <meta name="robots" content="noindex, nofollow" />
+    <link rel="canonical" href={canonicalUrl} />
+    <meta name="viewport" content="width=device-width" />
+    <style>
+      body { margin:0; background:#1a1a2e; color:#e0e0e0; font-family:system-ui,sans-serif; }
+      nav a { color:#e94560; text-decoration:none; margin-right:16px; }
+      nav a:hover { text-decoration:underline; }
+      .card { background:#16213e; border:1px solid #0f3460; border-radius:12px; padding:16px; }
+      .metric-value { font-size:32px; font-weight:700; color:#4ecca3; margin:4px 0 0; }
+      .metric-label { font-size:13px; opacity:0.6; margin:0; }
+      table { width:100%; border-collapse:collapse; margin-top:8px; }
+      th, td { text-align:left; padding:10px; border-bottom:1px solid #0f3460; font-size:14px; }
+      th { opacity:0.6; font-weight:600; }
+    </style>
+  </head>
+  <body>
+    <main style="max-width:1200px; margin:0 auto; padding:32px 20px;">
+      <header style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:12px; margin-bottom:32px;">
+        <div>
+          <h1 style="margin:0; color:#e94560;">Admin Dashboard</h1>
+          <p style="margin:4px 0 0; opacity:0.6; font-size:14px;">Marketplace operativo</p>
+        </div>
+        <nav style="display:flex; gap:12px; flex-wrap:wrap; align-items:center;">
+          <a href="/admin">Dashboard</a>
+          <a href="/admin/leads">Leads</a>
+          <a href="/admin/providers">Proveedores</a>
+          <a href="/admin/services">Servicios</a>
+          <a href="/admin/reviews">Reviews</a>
+          <button id="logout-btn" type="button" style="background:#e94560; color:#fff; border:none; border-radius:6px; padding:6px 14px; cursor:pointer;">Cerrar sesion</button>
+        </nav>
+      </header>
+
+      <div style="display:grid; grid-template-columns:repeat(auto-fit,minmax(200px,1fr)); gap:16px; margin-bottom:32px;">
+        <div class="card">
+          <p class="metric-label">Proveedores activos</p>
+          <p class="metric-value" id="metric-providers">-</p>
+        </div>
+        <div class="card">
+          <p class="metric-label">Leads totales</p>
+          <p class="metric-value" id="metric-leads">-</p>
+        </div>
+        <div class="card">
+          <p class="metric-label">Tiempo medio respuesta</p>
+          <p class="metric-value" id="metric-response">-</p>
+        </div>
+      </div>
+
+      <div style="display:grid; grid-template-columns:1fr 1fr; gap:16px;">
+        <div class="card">
+          <h3 style="margin-top:0;">Leads por estado</h3>
+          <table id="leads-by-status"><tbody></tbody></table>
+        </div>
+        <div class="card">
+          <h3 style="margin-top:0;">Leads por ciudad</h3>
+          <table id="leads-by-city"><tbody></tbody></table>
+        </div>
+      </div>
+    </main>
+
+    <script>
+      import {
+        apiRequest,
+        ensureAdminSession,
+        clearStoredAccessToken,
+        adminAuthHeaders,
+        dateLabel
+      } from '../../scripts/admin-panel-client';
+
+      type MetricsData = {
+        active_providers: number;
+        leads_by_status: { status: string; count: number }[];
+        leads_by_city: { city: string; city_slug: string; count: number }[];
+        avg_response_seconds: number;
+      };
+
+      function el(id: string): HTMLElement | null { return document.querySelector(id); }
+
+      document.querySelector('#logout-btn')?.addEventListener('click', () => {
+        clearStoredAccessToken();
+        window.location.href = '/admin/login';
+      });
+
+      function renderMetrics(m: MetricsData) {
+        const prov = el('#metric-providers');
+        const leadEl = el('#metric-leads');
+        const resp = el('#metric-response');
+        const tbStatus = el('#leads-by-status tbody');
+        const tbCity = el('#leads-by-city tbody');
+
+        if (prov) prov.textContent = String(m.active_providers);
+        const totalLeads = m.leads_by_status.reduce((s, r) => s + r.count, 0);
+        if (leadEl) leadEl.textContent = String(totalLeads);
+        if (resp) {
+          const hours = m.avg_response_seconds > 0
+            ? (m.avg_response_seconds / 3600).toFixed(1) + 'h'
+            : 'N/A';
+          resp.textContent = hours;
+        }
+
+        if (tbStatus) {
+          const labels: Record<string,string> = { new:'Nuevo', qualified:'Calificado', assigned:'Asignado', in_progress:'En progreso', closed:'Cerrado', archived:'Archivado', invalid:'Invalido' };
+          tbStatus.innerHTML = m.leads_by_status.map(r =>
+            `<tr><td>${labels[r.status] ?? r.status}</td><td style="text-align:right;">${r.count}</td></tr>`
+          ).join('');
+        }
+        if (tbCity) {
+          tbCity.innerHTML = m.leads_by_city.map(r =>
+            `<tr><td>${r.city}</td><td style="text-align:right;">${r.count}</td></tr>`
+          ).join('');
+        }
+      }
+
+      async function load() {
+        const session = await ensureAdminSession({ redirectToLogin: true });
+        if (!session.ok) return;
+
+        const result = await apiRequest<MetricsData>('/api/admin/metrics', {
+          headers: { ...adminAuthHeaders() }
+        });
+
+        if (result.ok && result.data) {
+          renderMetrics(result.data);
+        }
+      }
+
+      load();
+    </script>
+  </body>
+</html>

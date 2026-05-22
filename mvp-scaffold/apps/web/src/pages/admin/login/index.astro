@@ -1,0 +1,96 @@
+---
+export const prerender = true;
+const siteOrigin = Astro.site ? new URL(Astro.site).origin : 'https://apps.reindr.org';
+const canonicalUrl = `${siteOrigin}/admin/login`;
+---
+
+<html lang="es">
+  <head>
+    <meta charset="utf-8" />
+    <title>Admin | Reindr Marketplace</title>
+    <meta name="description" content="Acceso administrativo al marketplace Reindr." />
+    <meta name="robots" content="noindex, nofollow" />
+    <link rel="canonical" href={canonicalUrl} />
+    <meta name="viewport" content="width=device-width" />
+  </head>
+  <body style="margin:0; background:#1a1a2e;">
+    <main style="min-height:100vh; display:grid; place-items:center; padding:20px; font-family:system-ui,sans-serif;">
+      <section style="width:min(420px,100%); background:#16213e; border:1px solid #0f3460; border-radius:14px; padding:24px; color:#e0e0e0;">
+        <h1 style="margin-top:0; color:#e94560;">Admin Reindr</h1>
+        <p style="margin-top:0; opacity:0.7;">Panel administrativo del marketplace.</p>
+
+        <form id="admin-login-form" style="display:grid; gap:10px;">
+          <label>
+            Email
+            <input type="email" name="email" required style="width:100%; padding:8px; border:1px solid #0f3460; border-radius:6px; background:#1a1a2e; color:#e0e0e0; box-sizing:border-box;" />
+          </label>
+          <label>
+            Password
+            <input type="password" name="password" required style="width:100%; padding:8px; border:1px solid #0f3460; border-radius:6px; background:#1a1a2e; color:#e0e0e0; box-sizing:border-box;" />
+          </label>
+          <button type="submit" style="padding:10px; background:#e94560; color:#fff; border:none; border-radius:6px; cursor:pointer;">Entrar al admin</button>
+        </form>
+
+        <p id="login-status" style="margin:12px 0 0; font-size:14px;"></p>
+      </section>
+    </main>
+
+    <script>
+      import {
+        apiRequest,
+        ensureAdminSession,
+        setStoredAccessToken
+      } from '../../../scripts/admin-panel-client';
+
+      type LoginResponse = {
+        access_token: string;
+        actor: { role: string };
+      };
+
+      const form = document.querySelector<HTMLFormElement>('#admin-login-form');
+      const statusEl = document.querySelector<HTMLElement>('#login-status');
+      const params = new URLSearchParams(window.location.search);
+      const nextPath = params.get('next') ?? '/admin';
+
+      function setStatus(message: string, tone: 'neutral' | 'error' | 'ok' = 'neutral') {
+        if (!statusEl) return;
+        statusEl.textContent = message;
+        statusEl.style.color = tone === 'error' ? '#e94560' : tone === 'ok' ? '#4ecca3' : '#ccc';
+      }
+
+      (async () => {
+        const existingSession = await ensureAdminSession();
+        if (existingSession.ok) {
+          window.location.href = nextPath;
+        }
+      })();
+
+      form?.addEventListener('submit', async (event) => {
+        event.preventDefault();
+        const formData = new FormData(form);
+        const email = String(formData.get('email') ?? '').trim();
+        const password = String(formData.get('password') ?? '');
+
+        const result = await apiRequest<LoginResponse>('/api/auth/login', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ email, password })
+        });
+
+        if (!result.ok || !result.data) {
+          setStatus('Credenciales invalidas.', 'error');
+          return;
+        }
+
+        if (result.data.actor.role !== 'admin') {
+          setStatus('Esta cuenta no tiene rol admin.', 'error');
+          return;
+        }
+
+        setStoredAccessToken(result.data.access_token);
+        setStatus('Acceso correcto. Redirigiendo...', 'ok');
+        window.location.href = nextPath;
+      });
+    </script>
+  </body>
+</html>

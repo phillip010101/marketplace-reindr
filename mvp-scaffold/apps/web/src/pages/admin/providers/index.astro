@@ -1,0 +1,136 @@
+---
+export const prerender = true;
+const siteOrigin = Astro.site ? new URL(Astro.site).origin : 'https://apps.reindr.org';
+const canonicalUrl = `${siteOrigin}/admin/providers`;
+---
+
+<html lang="es">
+  <head>
+    <meta charset="utf-8" />
+    <title>Proveedores | Admin Reindr</title>
+    <meta name="description" content="Gestion de proveedores del marketplace." />
+    <meta name="robots" content="noindex, nofollow" />
+    <link rel="canonical" href={canonicalUrl} />
+    <meta name="viewport" content="width=device-width" />
+    <style>
+      body { margin:0; background:#1a1a2e; color:#e0e0e0; font-family:system-ui,sans-serif; }
+      nav a { color:#e94560; text-decoration:none; margin-right:16px; }
+      .card { background:#16213e; border:1px solid #0f3460; border-radius:12px; padding:16px; margin-bottom:16px; }
+      table { width:100%; border-collapse:collapse; margin-top:8px; }
+      th,td { text-align:left; padding:8px; border-bottom:1px solid #0f3460; font-size:13px; }
+      th { opacity:0.6; }
+      .badge { display:inline-block; padding:2px 8px; border-radius:10px; font-size:11px; }
+      select,input,button { padding:6px 10px; border:1px solid #0f3460; border-radius:4px; background:#1a1a2e; color:#ccc; }
+    </style>
+  </head>
+  <body>
+    <main style="max-width:1200px; margin:0 auto; padding:32px 20px;">
+      <header style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; margin-bottom:24px;">
+        <h1 style="margin:0; color:#e94560;">Proveedores</h1>
+        <nav>
+          <a href="/admin">Dashboard</a>
+          <a href="/admin/leads">Leads</a>
+          <a href="/admin/providers">Proveedores</a>
+          <a href="/admin/services">Servicios</a>
+          <a href="/admin/reviews">Reviews</a>
+          <button id="logout-btn" style="background:#e94560; color:#fff; border:none; border-radius:6px; padding:6px 14px; cursor:pointer;">Salir</button>
+        </nav>
+      </header>
+
+      <div class="card">
+        <div style="display:flex; gap:10px; flex-wrap:wrap; align-items:end;">
+          <label>Estado <select id="filter-status"><option value="">Todos</option><option value="draft">Borrador</option><option value="pending_review">Pendiente</option><option value="active">Activo</option><option value="suspended">Suspendido</option></select></label>
+          <label>Buscar <input id="filter-search" placeholder="nombre o slug" /></label>
+          <button id="btn-refresh" style="background:#0f3460; color:#fff; border:none; padding:8px 16px; border-radius:4px; cursor:pointer;">Filtrar</button>
+        </div>
+      </div>
+
+      <div id="providers-container" style="margin-top:16px;">Cargando...</div>
+    </main>
+
+    <script>
+      import {
+        apiRequest, ensureAdminSession, clearStoredAccessToken,
+        adminAuthHeaders, dateLabel, escapeHtml
+      } from '../../../scripts/admin-panel-client';
+
+      type ProviderRow = {
+        id:string; display_name:string; slug:string; status:string;
+        phone:string; whatsapp:string; website_url:string;
+        account_email:string; account_status:string;
+        services:{service_slug:string;service_name:string;location_name:string}[];
+        created_at:string;
+      };
+
+      document.querySelector('#logout-btn')?.addEventListener('click', () => {
+        clearStoredAccessToken(); window.location.href = '/admin/login';
+      });
+
+      function statusBadge(s:string) {
+        const map:Record<string,string> = { active:'#4ecca3', draft:'#ffc107', pending_review:'#17a2b8', suspended:'#e94560' };
+        return `<span class="badge" style="background:${map[s]??'#666'}; color:#000;">${s}</span>`;
+      }
+
+      function renderProviders(providers:ProviderRow[]) {
+        const c = document.querySelector('#providers-container');
+        if (!c) return;
+        if (!providers.length) { c.innerHTML = '<p>No hay proveedores.</p>'; return; }
+        c.innerHTML = `<table><thead><tr>
+          <th>Nombre</th><th>Slug</th><th>Email</th><th>Estado</th><th>Servicios</th><th>Fecha</th><th></th>
+        </tr></thead><tbody>
+        ${providers.map(p => `<tr>
+          <td><strong>${escapeHtml(p.display_name)}</strong></td>
+          <td>${escapeHtml(p.slug)}</td>
+          <td><small>${escapeHtml(p.account_email??'-')}</small></td>
+          <td>${statusBadge(p.status)}</td>
+          <td><small>${(p.services||[]).map(s=>escapeHtml(s.service_name)).join(', ')}</small></td>
+          <td style="font-size:12px;">${dateLabel(p.created_at)}</td>
+          <td style="white-space:nowrap;">
+            ${p.status==='draft'||p.status==='pending_review'||p.status==='suspended'
+              ? `<button onclick="approveProvider('${p.id}','${p.slug}')" style="background:#4ecca3;color:#000;border:none;padding:4px 8px;border-radius:4px;cursor:pointer;">Aprobar</button>`
+              : ''}
+            ${p.status==='active'
+              ? `<button onclick="suspendProvider('${p.id}','${p.slug}')" style="background:#e94560;color:#fff;border:none;padding:4px 8px;border-radius:4px;cursor:pointer;">Suspender</button>`
+              : ''}
+          </td>
+        </tr>`).join('')}
+        </tbody></table>`;
+      }
+
+      (window as any).approveProvider = async function(id:string,slug:string) {
+        const session = await ensureAdminSession({ redirectToLogin: true });
+        if (!session.ok) return;
+        await apiRequest(`/api/admin/providers/${slug}/approve`, {
+          method:'POST', headers:{...adminAuthHeaders()}
+        });
+        loadProviders();
+      };
+      (window as any).suspendProvider = async function(id:string,slug:string) {
+        const session = await ensureAdminSession({ redirectToLogin: true });
+        if (!session.ok) return;
+        await apiRequest(`/api/admin/providers/${slug}/suspend`, {
+          method:'POST', headers:{...adminAuthHeaders()}
+        });
+        loadProviders();
+      };
+
+      async function loadProviders() {
+        const session = await ensureAdminSession({ redirectToLogin: true });
+        if (!session.ok) return;
+        const s = (document.querySelector('#filter-status') as HTMLSelectElement)?.value ?? '';
+        const q = (document.querySelector('#filter-search') as HTMLInputElement)?.value ?? '';
+        const params = new URLSearchParams();
+        if (s) params.set('status', s);
+        if (q) params.set('search', q);
+        const qs = params.toString() ? '?'+params.toString() : '';
+        const result = await apiRequest<{providers:ProviderRow[]}>('/api/admin/providers'+qs, {
+          headers:{...adminAuthHeaders()}
+        });
+        if (result.ok && result.data) renderProviders(result.data.providers);
+      }
+
+      document.querySelector('#btn-refresh')?.addEventListener('click', loadProviders);
+      loadProviders();
+    </script>
+  </body>
+</html>
