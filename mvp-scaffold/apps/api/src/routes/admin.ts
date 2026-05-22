@@ -406,7 +406,9 @@ adminRoute.get('/events', async (c) => {
 const CreateProviderSchema = z.object({
   email: z.string().email(),
   password: z.string().min(8).max(200),
-  display_name: z.string().min(2).max(120)
+  display_name: z.string().min(2).max(120),
+  template_id: z.string().max(80).optional(),
+  services: z.array(z.string().min(2).max(80)).max(50).optional()
 });
 
 adminRoute.post('/providers', async (c) => {
@@ -471,11 +473,37 @@ adminRoute.post('/providers', async (c) => {
         slug = `${slug}-${accountId.slice(0, 6)}`;
       }
 
-      await pool.query(
-        `INSERT INTO providers (account_id, display_name, slug, status)
-         VALUES ($1, $2, $3, 'draft')`,
-        [accountId, display_name, slug]
+      const templateId = parsed.data.template_id ?? null;
+
+      const providerResult = await pool.query<{ id: string }>(
+        `INSERT INTO providers (account_id, display_name, slug, status, template_id)
+         VALUES ($1, $2, $3, 'draft', $4)
+         RETURNING id::text AS id`,
+        [accountId, display_name, slug, templateId]
       );
+      const providerId = providerResult.rows[0].id;
+
+      if (parsed.data.services && parsed.data.services.length > 0) {
+        const slugList = parsed.data.services.map((_, i) => `$${i + 1}`).join(', ');
+        const svcRows = await pool.query<{ id: string }>(
+          `SELECT id FROM services WHERE slug IN (${slugList}) AND status = 'active'`,
+          parsed.data.services
+        );
+        const locResult = await pool.query<{ id: string }>(
+          `SELECT id FROM locations WHERE slug = 'bogota' AND type = 'city' LIMIT 1`
+        );
+        const bogotaId = locResult.rows[0]?.id;
+        if (bogotaId) {
+          for (const svc of svcRows.rows) {
+            await pool.query(
+              `INSERT INTO provider_services (provider_id, service_id, location_id, active)
+               VALUES ($1, $2, $3, true)
+               ON CONFLICT DO NOTHING`,
+              [providerId, svc.id, bogotaId]
+            );
+          }
+        }
+      }
 
       await pool.query('COMMIT');
 

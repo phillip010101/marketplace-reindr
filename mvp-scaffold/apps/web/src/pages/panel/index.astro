@@ -162,9 +162,10 @@ const canonicalUrl = `${siteOrigin}/panel`;
         const items = [
           { label: 'Nombre comercial', done: !!(p.display_name && p.display_name.length >= 2) },
           { label: 'Descripcion', done: !!(p.description && p.description.length >= 10) },
-          { label: 'Telefono o WhatsApp', done: !!p.phone },
+          { label: 'Telefono o WhatsApp', done: !!(p.phone || p.whatsapp) },
           { label: 'Plantilla visual', done: !!(p.template_id && p.template_id !== 'craft-paper') },
-          { label: 'Servicios ofrecidos', done: !!(p.services && p.services.length > 0) }
+          { label: 'Servicios ofrecidos', done: !!(p.services && p.services.length > 0) },
+          { label: 'Ciudades de cobertura', done: !!(p.cities && p.cities.length > 0) }
         ];
 
         const doneCount = items.filter(i => i.done).length;

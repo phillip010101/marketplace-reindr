@@ -42,7 +42,19 @@ const canonicalUrl = `${siteOrigin}/admin/providers`;
         <form id="create-provider-form" style="display:grid; gap:8px; max-width:480px;">
           <input name="display_name" placeholder="Nombre del negocio" required />
           <input name="email" type="email" placeholder="Email" required />
-          <input name="password" type="password" placeholder="Password (min 8 caracteres)" required minlength="8" />
+          <input name="password" type="password" placeholder="Password (min 8)" required minlength="8" />
+          <select name="template_id">
+            <option value="">Plantilla (opcional)</option>
+            <option value="craft-paper">Craft Paper</option>
+            <option value="urban-ink">Urban Ink</option>
+            <option value="clean-lab">Clean Lab</option>
+            <option value="executive-grid">Executive Grid</option>
+            <option value="studio-sand">Studio Sand</option>
+            <option value="ocean-board">Ocean Board</option>
+          </select>
+          <div id="create-services-check" style="display:grid; grid-template-columns:repeat(auto-fit,minmax(160px,1fr)); gap:4px; font-size:13px; max-height:150px; overflow-y:auto; border:1px solid #0f3460; border-radius:4px; padding:8px;">
+            Cargando servicios...
+          </div>
           <button type="submit" style="background:#4ecca3; color:#000; border:none; padding:8px; border-radius:4px; cursor:pointer;">Crear proveedor</button>
         </form>
         <p id="create-status" style="font-size:13px;"></p>
@@ -149,14 +161,22 @@ const canonicalUrl = `${siteOrigin}/admin/providers`;
         if (!session.ok) return;
         const fd = new FormData(e.target as HTMLFormElement);
         const statusEl = document.querySelector('#create-status');
+        const checkedServices = Array.from(
+          document.querySelectorAll<HTMLInputElement>('#create-services-check input[name="svc"]:checked') ?? []
+        ).map(el => el.value);
+        const templateId = String(fd.get('template_id') ?? '').trim();
+        const body: Record<string, unknown> = {
+          display_name: String(fd.get('display_name') ?? '').trim(),
+          email: String(fd.get('email') ?? '').trim(),
+          password: String(fd.get('password') ?? '')
+        };
+        if (templateId) body.template_id = templateId;
+        if (checkedServices.length > 0) body.services = checkedServices;
+
         const result = await apiRequest('/api/admin/providers', {
           method: 'POST',
           headers: { ...adminAuthHeaders(), 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            display_name: String(fd.get('display_name') ?? '').trim(),
-            email: String(fd.get('email') ?? '').trim(),
-            password: String(fd.get('password') ?? '')
-          })
+          body: JSON.stringify(body)
         });
         if (statusEl) {
           statusEl.textContent = result.ok ? 'Proveedor creado.' : 'Error al crear.';
@@ -165,7 +185,21 @@ const canonicalUrl = `${siteOrigin}/admin/providers`;
         if (result.ok) { (e.target as HTMLFormElement).reset(); loadProviders(); }
       });
 
+      async function loadCreateServices() {
+        const container = document.querySelector('#create-services-check');
+        if (!container) return;
+        const result = await apiRequest<{id:string;slug:string;name:string}[]>('/api/services', {
+          headers: { ...adminAuthHeaders() }
+        });
+        if (result.ok && result.data) {
+          container.innerHTML = result.data.map(s =>
+            `<label><input type="checkbox" name="svc" value="${s.slug}" /> ${s.name}</label>`
+          ).join('');
+        }
+      }
+
       loadProviders();
+      loadCreateServices();
     </script>
   </body>
 </html>
