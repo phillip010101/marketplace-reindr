@@ -1,36 +1,57 @@
 ---
-export const prerender = true;
-import {
-  getProvidersForServiceInCity,
-  getRelatedServiceSlugs,
-  getServiceBySlug,
-  getServiceName
-} from '../../data/catalog';
+export const prerender = false;
+import { getServiceBySlug, getServiceName } from '../../data/catalog';
 
-export async function getStaticPaths() {
-  return [
-    { params: { city: 'bogota', service: 'cajas-personalizadas' } },
-    { params: { city: 'bogota', service: 'troqueles' } },
-    { params: { city: 'bogota', service: 'impresion' } },
-    { params: { city: 'bogota', service: 'etiquetas' } }
-  ];
-}
+type ProviderCard = {
+  id: string;
+  slug: string;
+  display_name: string;
+  description: string;
+  services: string[];
+  city: string;
+  template_id: string;
+};
+
+type RelatedService = {
+  slug: string;
+  label: string;
+};
 
 const { city, service } = Astro.params;
-const citySlug = city ?? 'bogota';
-const serviceSlug = service ?? 'cajas-personalizadas';
-const serviceItem = getServiceBySlug(serviceSlug);
-const serviceName = serviceItem?.name ?? getServiceName(serviceSlug);
+const citySlug = (city ?? 'bogota').toLowerCase();
+const serviceSlug = (service ?? 'cajas-personalizadas').toLowerCase();
 
 const apiBaseUrl = import.meta.env.PUBLIC_API_BASE_URL ?? 'http://localhost:8787';
 const leadsEndpoint = `${apiBaseUrl}/api/leads`;
 
-const related = getRelatedServiceSlugs(serviceSlug).map((slug) => ({
-  slug,
-  label: getServiceName(slug)
-}));
+const serviceItem = getServiceBySlug(serviceSlug);
+const serviceName = serviceItem?.name ?? getServiceName(serviceSlug);
 
-const providers = getProvidersForServiceInCity(citySlug, serviceSlug);
+let providers: ProviderCard[] = [];
+let related: RelatedService[] = [];
+
+try {
+  const [provRes, relRes] = await Promise.all([
+    fetch(`${apiBaseUrl}/api/providers?city=${encodeURIComponent(citySlug)}&service=${encodeURIComponent(serviceSlug)}`),
+    fetch(`${apiBaseUrl}/api/services/${encodeURIComponent(serviceSlug)}/related`)
+  ]);
+
+  if (provRes.ok) {
+    const json = await provRes.json();
+    providers = (json.data ?? []) as ProviderCard[];
+  }
+
+  if (relRes.ok) {
+    const json = await relRes.json();
+    related = (json.data ?? []).map((r: any) => ({
+      slug: r.slug ?? r.target_service_slug,
+      label: r.name ?? r.label ?? r.target_service_name ?? r.slug
+    }));
+  }
+} catch {
+  // Keep empty arrays as fallback
+}
+
 const siteOrigin = Astro.site ? new URL(Astro.site).origin : 'https://apps.reindr.org';
 const canonicalUrl = `${siteOrigin}/${citySlug}/${serviceSlug}`;
 ---
@@ -57,7 +78,8 @@ const canonicalUrl = `${siteOrigin}/${citySlug}/${serviceSlug}`;
           <ul>
             {providers.map((provider) => (
               <li>
-                <a href={`/proveedores/${provider.slug}`}>{provider.displayName}</a>
+                <a href={`/proveedores/${provider.slug}`}>{provider.display_name}</a>
+                {provider.description ? <p style="margin:4px 0; opacity:0.7; font-size:14px;">{provider.description.slice(0, 120)}</p> : null}
               </li>
             ))}
           </ul>
