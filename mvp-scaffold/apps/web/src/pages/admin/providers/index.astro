@@ -38,6 +38,17 @@ const canonicalUrl = `${siteOrigin}/admin/providers`;
       </header>
 
       <div class="card">
+        <h3 style="margin-top:0;">Crear proveedor</h3>
+        <form id="create-provider-form" style="display:grid; gap:8px; max-width:480px;">
+          <input name="display_name" placeholder="Nombre del negocio" required />
+          <input name="email" type="email" placeholder="Email" required />
+          <input name="password" type="password" placeholder="Password (min 8 caracteres)" required minlength="8" />
+          <button type="submit" style="background:#4ecca3; color:#000; border:none; padding:8px; border-radius:4px; cursor:pointer;">Crear proveedor</button>
+        </form>
+        <p id="create-status" style="font-size:13px;"></p>
+      </div>
+
+      <div class="card">
         <div style="display:flex; gap:10px; flex-wrap:wrap; align-items:end;">
           <label>Estado <select id="filter-status"><option value="">Todos</option><option value="draft">Borrador</option><option value="pending_review">Pendiente</option><option value="active">Activo</option><option value="suspended">Suspendido</option></select></label>
           <label>Buscar <input id="filter-search" placeholder="nombre o slug" /></label>
@@ -130,6 +141,30 @@ const canonicalUrl = `${siteOrigin}/admin/providers`;
       }
 
       document.querySelector('#btn-refresh')?.addEventListener('click', loadProviders);
+
+      // Create provider form
+      document.querySelector('#create-provider-form')?.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const session = await ensureAdminSession({ redirectToLogin: true });
+        if (!session.ok) return;
+        const fd = new FormData(e.target as HTMLFormElement);
+        const statusEl = document.querySelector('#create-status');
+        const result = await apiRequest('/api/admin/providers', {
+          method: 'POST',
+          headers: { ...adminAuthHeaders(), 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            display_name: String(fd.get('display_name') ?? '').trim(),
+            email: String(fd.get('email') ?? '').trim(),
+            password: String(fd.get('password') ?? '')
+          })
+        });
+        if (statusEl) {
+          statusEl.textContent = result.ok ? 'Proveedor creado.' : 'Error al crear.';
+          statusEl.style.color = result.ok ? '#4ecca3' : '#e94560';
+        }
+        if (result.ok) { (e.target as HTMLFormElement).reset(); loadProviders(); }
+      });
+
       loadProviders();
     </script>
   </body>

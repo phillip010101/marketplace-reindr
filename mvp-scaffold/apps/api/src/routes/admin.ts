@@ -403,6 +403,112 @@ adminRoute.get('/events', async (c) => {
 
 // ── Providers management (NEW) ────────────────────────────────────
 
+const CreateProviderSchema = z.object({
+  email: z.string().email(),
+  password: z.string().min(8).max(200),
+  display_name: z.string().min(2).max(120)
+});
+
+adminRoute.post('/providers', async (c) => {
+  try {
+    const actor = requireAdminActor(c);
+    const parsed = CreateProviderSchema.safeParse(await c.req.json());
+    if (!parsed.success) {
+      const failure = errorResponse(400, {
+        code: 'VALIDATION_ERROR',
+        message: 'Datos invalidos',
+        fields: parsed.error.flatten().fieldErrors
+      });
+      return c.json(failure.body, failure.status);
+    }
+
+    const { email, password, display_name } = parsed.data;
+    const normalizedEmail = email.trim().toLowerCase();
+    const pool = getPool();
+
+    const existing = await pool.query<{ id: string }>(
+      `SELECT id FROM accounts WHERE email = $1 LIMIT 1`,
+      [normalizedEmail]
+    );
+
+    if (existing.rowCount && existing.rowCount > 0) {
+      const failure = errorResponse(409, {
+        code: 'CONFLICT',
+        message: 'Ya existe una cuenta con este email.'
+      });
+      return c.json(failure.body, failure.status);
+    }
+
+    const { randomBytes } = await import('node:crypto');
+    const { createPasswordHash } = await import('../lib/password');
+    const salt = randomBytes(16).toString('base64url');
+    const passwordHash = createPasswordHash(password, salt);
+    const baseSlug = display_name
+      .toLowerCase()
+      .normalize('NFD')
+      .replace(/[\u0300-\u036f]/g, '')
+      .replace(/[^a-z0-9]+/g, '-')
+      .replace(/^-+|-+$/g, '')
+      .slice(0, 80) || `provider-${Date.now()}`;
+
+    await pool.query('BEGIN');
+
+    try {
+      const accountResult = await pool.query<{ id: string }>(
+        `INSERT INTO accounts (email, password_hash, role, status)
+         VALUES ($1, $2, 'provider', 'active')
+         RETURNING id::text AS id`,
+        [normalizedEmail, passwordHash]
+      );
+      const accountId = accountResult.rows[0].id;
+
+      let slug = baseSlug;
+      const slugCheck = await pool.query<{ slug: string }>(
+        `SELECT slug FROM providers WHERE slug = $1 LIMIT 1`,
+        [slug]
+      );
+      if (slugCheck.rowCount && slugCheck.rowCount > 0) {
+        slug = `${slug}-${accountId.slice(0, 6)}`;
+      }
+
+      await pool.query(
+        `INSERT INTO providers (account_id, display_name, slug, status)
+         VALUES ($1, $2, $3, 'draft')`,
+        [accountId, display_name, slug]
+      );
+
+      await pool.query('COMMIT');
+
+      await appendAdminEvent({
+        eventType: 'provider_created',
+        actorAccountId: actor.accountId,
+        payload: { provider_slug: slug, display_name, email: normalizedEmail }
+      });
+
+      return c.json({
+        ok: true,
+        data: { account_id: accountId, slug, display_name, email: normalizedEmail, status: 'draft' }
+      }, 201);
+    } catch {
+      await pool.query('ROLLBACK');
+      throw new ApiRequestError(500, {
+        code: 'INTERNAL_ERROR',
+        message: 'No fue posible crear el proveedor.'
+      });
+    }
+  } catch (error) {
+    if (error instanceof ApiRequestError) {
+      const failure = errorResponse(error.status, error.payload);
+      return c.json(failure.body, failure.status);
+    }
+    const failure = errorResponse(500, {
+      code: 'INTERNAL_ERROR',
+      message: 'No fue posible crear el proveedor.'
+    });
+    return c.json(failure.body, failure.status);
+  }
+});
+
 adminRoute.get('/providers', async (c) => {
   try {
     requireAdminActor(c);
