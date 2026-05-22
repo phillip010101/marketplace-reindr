@@ -1,114 +1,122 @@
 ---
-export const prerender = true;
-import { PROVIDERS, getPublicApprovedReviews, getServiceName } from '../../data/catalog';
+export const prerender = false;
 import {
   providerTemplateInlineStyle,
   resolveProviderTemplateWithFallback
 } from '../../scripts/provider-template';
 
-export async function getStaticPaths() {
-  return PROVIDERS.map((provider) => ({ params: { providerSlug: provider.slug } }));
-}
+type ProviderProfileData = {
+  id: string;
+  slug: string;
+  display_name: string;
+  description: string | null;
+  phone: string | null;
+  whatsapp: string | null;
+  website_url: string | null;
+  logo_url: string | null;
+  cover_url: string | null;
+  template_id: string;
+  services: string[];
+  city?: string;
+  reviews?: { id: string; rating: number; title: string; body: string; status: string; created_at: string; author_label: string }[];
+};
 
-const providerSlug = Astro.params.providerSlug ?? '';
-const provider = PROVIDERS.find((item) => item.slug === providerSlug);
-const approvedReviews = getPublicApprovedReviews(providerSlug);
+const slug = Astro.params.providerSlug ?? '';
 
-if (!provider) {
-  throw new Error(`Provider not found for slug: ${providerSlug}`);
+let provider: ProviderProfileData | null = null;
+let errorMessage: string | null = null;
+
+try {
+  const apiBase = import.meta.env.PUBLIC_API_BASE_URL ?? 'http://localhost:8787';
+  const res = await fetch(`${apiBase}/api/providers/${encodeURIComponent(slug)}`);
+  if (res.ok) {
+    const json = await res.json();
+    provider = json.data as ProviderProfileData;
+  }
+} catch {
+  errorMessage = 'Error al cargar datos del proveedor.';
 }
 
 const siteOrigin = Astro.site ? new URL(Astro.site).origin : 'https://apps.reindr.org';
-const canonicalUrl = `${siteOrigin}/proveedores/${provider.slug}`;
-const template = resolveProviderTemplateWithFallback(provider.templateId);
+const canonicalUrl = `${siteOrigin}/proveedores/${slug}`;
+const template = provider
+  ? resolveProviderTemplateWithFallback(provider.template_id)
+  : resolveProviderTemplateWithFallback('craft-paper');
 ---
 
 <html lang="es">
   <head>
     <meta charset="utf-8" />
-    <title>{provider.displayName} | Proveedor en {provider.cityLabel}</title>
-    <meta
-      name="description"
-      content={`${provider.displayName}: ${provider.description}`}
-    />
+    <title>{provider ? `${provider.display_name} | Proveedor` : 'Proveedor no encontrado'} | Reindr Marketplace</title>
+    <meta name="description" content={provider?.description ?? 'Perfil de proveedor en Reindr Marketplace.'} />
     <link rel="canonical" href={canonicalUrl} />
     <meta name="viewport" content="width=device-width" />
   </head>
   <body style={providerTemplateInlineStyle(template)}>
     <main
       data-provider-template={template.id}
-      data-provider-slug={provider.slug}
+      data-provider-slug={slug}
       style="max-width: 960px; margin: 0 auto; padding: 48px 20px; font-family: var(--provider-font);"
     >
-      <a href="/servicios">&larr; Servicios</a>
-      <h1>{provider.displayName}</h1>
-      <p>{provider.description}</p>
-      <p><strong>Ciudad:</strong> {provider.cityLabel}</p>
-      <p id="provider-template-label" style="font-size:13px; margin-top:6px;">Template: {template.name}</p>
+      {!provider ? (
+        <section>
+          <a href="/servicios">&larr; Servicios</a>
+          <h1>Proveedor no encontrado</h1>
+          <p>{errorMessage ?? 'El proveedor que buscas no existe o no esta disponible.'}</p>
+        </section>
+      ) : (
+        <>
+          <a href="/servicios">&larr; Servicios</a>
+          <h1>{provider.display_name}</h1>
+          <p>{provider.description}</p>
 
-      <section style="margin-top: 24px; border: 1px solid var(--provider-border); border-radius: 12px; padding: 14px; background: var(--provider-card-bg);">
-        <h2>Servicios</h2>
-        <ul>
-          {provider.services.map((serviceSlug) => (
-            <li>
-              <a href={`/bogota/${serviceSlug}`} style="color: var(--provider-accent);">{getServiceName(serviceSlug)}</a>
-            </li>
-          ))}
-        </ul>
-      </section>
+          {provider.website_url ? (
+            <p><strong>Sitio web:</strong> <a href={provider.website_url} rel="noopener">{provider.website_url}</a></p>
+          ) : null}
+          {provider.whatsapp ? (
+            <p><strong>WhatsApp:</strong> {provider.whatsapp}</p>
+          ) : null}
+          {provider.phone ? (
+            <p><strong>Telefono:</strong> {provider.phone}</p>
+          ) : null}
 
-      <section style="margin-top: 24px; border: 1px solid var(--provider-border); border-radius: 12px; padding: 14px; background: var(--provider-card-bg);">
-        <h2>Resenas verificadas</h2>
-        {approvedReviews.length === 0 ? (
-          <p>Este proveedor aun no tiene resenas publicadas.</p>
-        ) : (
-          <ul style="display: grid; gap: 12px; padding-left: 20px;">
-            {approvedReviews.map((review) => (
-              <li>
-                <strong>{review.title}</strong> ({review.rating}/5)
-                <p style="margin: 6px 0;">{review.body}</p>
-                <small>{review.authorLabel} - {review.createdAt}</small>
-              </li>
-            ))}
-          </ul>
-        )}
-      </section>
+          <p id="provider-template-label" style="font-size:13px; margin-top:6px;">Template: {template.name}</p>
 
-      <section style="margin-top: 24px; border: 1px solid var(--provider-border); border-radius: 12px; padding: 16px; background: var(--provider-card-bg);">
-        <h2>Solicita cotizacion</h2>
-        <p>
-          Inicia por el servicio principal para enviar una sola solicitud y conectar servicios complementarios.
-        </p>
-        <a href={`/bogota/${provider.services[0]}`} style="color: var(--provider-accent);">Ir al formulario</a>
-      </section>
+          <section style="margin-top: 24px; border: 1px solid var(--provider-border); border-radius: 12px; padding: 14px; background: var(--provider-card-bg);">
+            <h2>Servicios</h2>
+            <ul>
+              {provider.services?.map((serviceSlug: string) => (
+                <li>
+                  <a href={`/bogota/${serviceSlug}`} style="color: var(--provider-accent);">{serviceSlug}</a>
+                </li>
+              ))}
+            </ul>
+          </section>
+
+          <section style="margin-top: 24px; border: 1px solid var(--provider-border); border-radius: 12px; padding: 14px; background: var(--provider-card-bg);">
+            <h2>Resenas verificadas</h2>
+            {(provider.reviews?.filter((r: any) => r.status === 'approved') ?? []).length === 0 ? (
+              <p>Este proveedor aun no tiene resenas publicadas.</p>
+            ) : (
+              <ul style="display: grid; gap: 12px; padding-left: 20px;">
+                {provider.reviews?.filter((r: any) => r.status === 'approved').map((review: any) => (
+                  <li>
+                    <strong>{review.title}</strong> ({review.rating}/5)
+                    <p style="margin: 6px 0;">{review.body}</p>
+                    <small>{review.author_label} - {new Date(review.created_at).toLocaleDateString('es-CO')}</small>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </section>
+
+          <section style="margin-top: 24px; border: 1px solid var(--provider-border); border-radius: 12px; padding: 16px; background: var(--provider-card-bg);">
+            <h2>Solicita cotizacion</h2>
+            <p>Inicia por el servicio principal para enviar una sola solicitud y conectar servicios complementarios.</p>
+            <a href={`/bogota/${provider.services?.[0] ?? 'cajas-personalizadas'}`} style="color: var(--provider-accent);">Ir al formulario</a>
+          </section>
+        </>
+      )}
     </main>
-
-    <script>
-      import {
-        applyProviderTemplateToDocument,
-        resolveProviderTemplateWithFallback
-      } from '../../scripts/provider-template';
-
-      const providerRoot = document.querySelector<HTMLElement>('main[data-provider-slug]');
-      const providerSlug = providerRoot?.dataset.providerSlug ?? '';
-
-      async function syncProviderTemplateFromApi() {
-        if (!providerSlug) return;
-        try {
-          const response = await fetch(`/api/providers/${encodeURIComponent(providerSlug)}`);
-          if (!response.ok) return;
-          const payload = await response.json().catch(() => null);
-          const templateId = String(payload?.data?.template_id ?? '').trim();
-          if (!templateId) return;
-
-          const template = resolveProviderTemplateWithFallback(templateId);
-          applyProviderTemplateToDocument(template);
-        } catch {
-          // Keep static fallback template when API is unavailable.
-        }
-      }
-
-      syncProviderTemplateFromApi();
-    </script>
   </body>
 </html>
