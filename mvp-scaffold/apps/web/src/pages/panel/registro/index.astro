@@ -1,0 +1,99 @@
+---
+export const prerender = true;
+const siteOrigin = Astro.site ? new URL(Astro.site).origin : 'https://apps.reindr.org';
+const canonicalUrl = `${siteOrigin}/panel/registro`;
+---
+
+<html lang="es">
+  <head>
+    <meta charset="utf-8" />
+    <title>Registro proveedor | Reindr Marketplace</title>
+    <meta name="description" content="Crea tu cuenta de proveedor en el marketplace Reindr." />
+    <meta name="robots" content="noindex, nofollow" />
+    <link rel="canonical" href={canonicalUrl} />
+    <meta name="viewport" content="width=device-width" />
+  </head>
+  <body style="margin:0; background:#f2f4f7;">
+    <main style="min-height:100vh; display:grid; place-items:center; padding:20px; font-family:system-ui,sans-serif;">
+      <section style="width:min(480px,100%); background:#fff; border:1px solid #dde2ea; border-radius:14px; padding:24px;">
+        <h1 style="margin-top:0;">Crear cuenta proveedor</h1>
+        <p style="margin-top:0; opacity:0.7;">Registrate para ofrecer tus servicios en el marketplace.</p>
+
+        <form id="register-form" style="display:grid; gap:10px;">
+          <label>
+            Nombre de tu negocio *
+            <input type="text" name="display_name" required minlength="2" maxlength="120" style="width:100%; padding:8px; border:1px solid #ddd; border-radius:6px; box-sizing:border-box;" />
+          </label>
+          <label>
+            Email *
+            <input type="email" name="email" required style="width:100%; padding:8px; border:1px solid #ddd; border-radius:6px; box-sizing:border-box;" />
+          </label>
+          <label>
+            Contrasena *
+            <input type="password" name="password" required minlength="8" style="width:100%; padding:8px; border:1px solid #ddd; border-radius:6px; box-sizing:border-box;" />
+            <small style="opacity:0.6;">Minimo 8 caracteres.</small>
+          </label>
+          <button type="submit" style="padding:10px; background:#0b5d1e; color:#fff; border:none; border-radius:6px; cursor:pointer; font-size:15px;">Crear cuenta y entrar al panel</button>
+        </form>
+
+        <p id="register-status" style="margin:12px 0 0; font-size:14px;"></p>
+
+        <p style="margin-top:20px; font-size:14px; border-top:1px solid #eee; padding-top:16px;">
+          Ya tenes cuenta? <a href="/panel/login" style="color:#0b5d1e;">Inicia sesion</a>
+        </p>
+      </section>
+    </main>
+
+    <script>
+      import {
+        apiRequest,
+        setStoredAccessToken
+      } from '../../../scripts/provider-panel-client';
+
+      type RegisterResponse = {
+        access_token: string;
+        provider: { slug: string; display_name: string };
+      };
+
+      const form = document.querySelector<HTMLFormElement>('#register-form');
+      const statusEl = document.querySelector<HTMLElement>('#register-status');
+
+      function setStatus(message: string, tone: 'neutral' | 'error' | 'ok' = 'neutral') {
+        if (!statusEl) return;
+        statusEl.textContent = message;
+        statusEl.style.color = tone === 'error' ? '#a40000' : tone === 'ok' ? '#0b5d1e' : '#333';
+      }
+
+      form?.addEventListener('submit', async (event) => {
+        event.preventDefault();
+        const formData = new FormData(form);
+        const email = String(formData.get('email') ?? '').trim();
+        const password = String(formData.get('password') ?? '');
+        const display_name = String(formData.get('display_name') ?? '').trim();
+
+        if (password.length < 8) {
+          setStatus('La contrasena debe tener al menos 8 caracteres.', 'error');
+          return;
+        }
+
+        const result = await apiRequest<RegisterResponse>('/api/auth/register', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ email, password, display_name })
+        });
+
+        if (!result.ok) {
+          const msg = result.error && typeof result.error === 'object' && 'message' in (result.error as any)
+            ? (result.error as any).message
+            : 'Error al crear la cuenta.';
+          setStatus(msg, 'error');
+          return;
+        }
+
+        setStoredAccessToken(result.data?.access_token ?? '');
+        setStatus('Cuenta creada. Redirigiendo al panel...', 'ok');
+        window.location.href = '/panel/perfil';
+      });
+    </script>
+  </body>
+</html>
