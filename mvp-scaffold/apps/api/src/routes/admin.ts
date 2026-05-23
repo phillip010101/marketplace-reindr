@@ -119,7 +119,188 @@ adminRoute.get('/services', async (c) => {
     }
     const failure = errorResponse(500, {
       code: 'INTERNAL_ERROR',
-      message: 'No fue posible listar servicios.'
+      message: 'No fue posible consultar metricas.'
+    });
+    return c.json(failure.body, failure.status);
+  }
+});
+
+// ── Billing (NEW) ─────────────────────────────────────────────────
+
+adminRoute.get('/billing/ledger', async (c) => {
+  try {
+    requireAdminActor(c);
+    const pool = getPool();
+
+    const result = await pool.query(
+      `SELECT
+         wt.id::text,
+         wt.type,
+         wt.amount,
+         wt.currency,
+         wt.reason,
+         wt.lead_opportunity_id::text,
+         wt.created_at,
+         p.display_name AS provider_name,
+         p.slug AS provider_slug
+       FROM wallet_transactions wt
+       JOIN providers p ON p.id = wt.provider_id
+       ORDER BY wt.created_at DESC
+       LIMIT 100`
+    );
+
+    return c.json({ ok: true, data: result.rows });
+  } catch (error) {
+    if (error instanceof ApiRequestError) {
+      const failure = errorResponse(error.status, error.payload);
+      return c.json(failure.body, failure.status);
+    }
+    const failure = errorResponse(500, {
+      code: 'INTERNAL_ERROR',
+      message: 'No fue posible consultar el libro mayor.'
+    });
+    return c.json(failure.body, failure.status);
+  }
+});
+
+adminRoute.post('/billing/charge/:opportunityId', async (c) => {
+  try {
+    const actor = requireAdminActor(c);
+    const opportunityId = c.req.param('opportunityId');
+    const pool = getPool();
+
+    const opp = await pool.query<{ provider_id: string; lead_price: number; valid_for_billing: boolean }>(
+      `SELECT provider_id::text, lead_price, valid_for_billing
+       FROM lead_opportunities
+       WHERE id::text = $1`,
+      [opportunityId]
+    );
+
+    if (opp.rowCount === 0) {
+      const failure = errorResponse(404, {
+        code: 'NOT_FOUND',
+        message: 'Oportunidad no encontrada.'
+      });
+      return c.json(failure.body, failure.status);
+    }
+
+    if (!opp.rows[0].valid_for_billing) {
+      const failure = errorResponse(400, {
+        code: 'INVALID_STATE',
+        message: 'Esta oportunidad no esta marcada como facturable.'
+      });
+      return c.json(failure.body, failure.status);
+    }
+
+    const existing = await pool.query(
+      `SELECT id FROM wallet_transactions
+       WHERE lead_opportunity_id::text = $1 AND type = 'debit'
+       LIMIT 1`,
+      [opportunityId]
+    );
+
+    if (existing.rowCount && existing.rowCount > 0) {
+      const failure = errorResponse(409, {
+        code: 'CONFLICT',
+        message: 'Ya existe un cobro para esta oportunidad.'
+      });
+      return c.json(failure.body, failure.status);
+    }
+
+    const result = await pool.query(
+      `INSERT INTO wallet_transactions (provider_id, type, amount, reason, lead_opportunity_id)
+       VALUES ($1, 'debit', $2, 'lead_charge', $3)
+       RETURNING id::text, type, amount, reason, created_at`,
+      [opp.rows[0].provider_id, opp.rows[0].lead_price, opportunityId]
+    );
+
+    await appendAdminEvent({
+      eventType: 'billing_charge',
+      actorAccountId: actor.accountId,
+      payload: {
+        opportunity_id: opportunityId,
+        provider_id: opp.rows[0].provider_id,
+        amount: opp.rows[0].lead_price
+      }
+    });
+
+    return c.json({ ok: true, data: result.rows[0] }, 201);
+  } catch (error) {
+    if (error instanceof ApiRequestError) {
+      const failure = errorResponse(error.status, error.payload);
+      return c.json(failure.body, failure.status);
+    }
+    const failure = errorResponse(500, {
+      code: 'INTERNAL_ERROR',
+      message: 'No fue posible realizar el cobro.'
+    });
+    return c.json(failure.body, failure.status);
+  }
+});
+
+adminRoute.post('/billing/refund/:opportunityId', async (c) => {
+  try {
+    const actor = requireAdminActor(c);
+    const opportunityId = c.req.param('opportunityId');
+    const pool = getPool();
+
+    const debit = await pool.query<{ id: string; provider_id: string; amount: number }>(
+      `SELECT id::text, provider_id::text, amount
+       FROM wallet_transactions
+       WHERE lead_opportunity_id::text = $1 AND type = 'debit'
+       LIMIT 1`,
+      [opportunityId]
+    );
+
+    if (debit.rowCount === 0) {
+      const failure = errorResponse(404, {
+        code: 'NOT_FOUND',
+        message: 'No existe un cobro previo para esta oportunidad.'
+      });
+      return c.json(failure.body, failure.status);
+    }
+
+    const existingRefund = await pool.query(
+      `SELECT id FROM wallet_transactions
+       WHERE lead_opportunity_id::text = $1 AND type = 'refund'
+       LIMIT 1`,
+      [opportunityId]
+    );
+
+    if (existingRefund.rowCount && existingRefund.rowCount > 0) {
+      const failure = errorResponse(409, {
+        code: 'CONFLICT',
+        message: 'Ya existe un reembolso para esta oportunidad.'
+      });
+      return c.json(failure.body, failure.status);
+    }
+
+    const result = await pool.query(
+      `INSERT INTO wallet_transactions (provider_id, type, amount, reason, lead_opportunity_id)
+       VALUES ($1, 'refund', $2, 'lead_refund', $3)
+       RETURNING id::text, type, amount, reason, created_at`,
+      [debit.rows[0].provider_id, debit.rows[0].amount, opportunityId]
+    );
+
+    await appendAdminEvent({
+      eventType: 'billing_refund',
+      actorAccountId: actor.accountId,
+      payload: {
+        opportunity_id: opportunityId,
+        provider_id: debit.rows[0].provider_id,
+        amount: debit.rows[0].amount
+      }
+    });
+
+    return c.json({ ok: true, data: result.rows[0] }, 201);
+  } catch (error) {
+    if (error instanceof ApiRequestError) {
+      const failure = errorResponse(error.status, error.payload);
+      return c.json(failure.body, failure.status);
+    }
+    const failure = errorResponse(500, {
+      code: 'INTERNAL_ERROR',
+      message: 'No fue posible realizar el reembolso.'
     });
     return c.json(failure.body, failure.status);
   }
