@@ -41,9 +41,9 @@ try {
         <h1>Encuentra proveedores y arma solicitudes multi-servicio</h1>
         <p>Busca un servicio principal y anade servicios complementarios como diseno, troquel, impresion, etiquetas o ecommerce.</p>
 
-        <form action="/bogota/cajas-personalizadas" method="get" style="display: flex; gap: 8px; flex-wrap: wrap; margin-top: 24px;">
-          <input name="q" placeholder="Que necesitas?" style="padding: 12px; min-width: 240px;" />
-          <button style="padding: 12px 16px;">Buscar</button>
+        <form id="search-form" style="display: flex; gap: 8px; flex-wrap: wrap; margin-top: 24px;">
+          <input name="q" id="search-input" placeholder="Que necesitas? Ej: cajas personalizadas" style="padding: 12px; min-width: 240px;" />
+          <button type="submit" id="search-btn" style="padding: 12px 16px;">Buscar</button>
         </form>
         <p style="margin-top:16px;">
           <a href="/panel/registro" style="color:#0b5d1e; font-weight:600;">Ofrece tus servicios — Registra tu negocio</a>
@@ -77,5 +77,27 @@ try {
         </section>
       ) : null}
     </main>
+
+    <script id="service-data" type="application/json" is:inline>{JSON.stringify(services.map(s => ({ slug: s.slug, name: s.name })))}</script>
+    <script is:inline>
+      const searchForm = document.querySelector('#search-form');
+      const searchInput = document.querySelector('#search-input');
+
+      const serviceData = JSON.parse(document.querySelector('#service-data')?.textContent ?? '[]');
+
+      searchForm?.addEventListener('submit', (e) => {
+        e.preventDefault();
+        const q = searchInput?.value?.trim().toLowerCase() ?? '';
+        if (!q) return;
+
+        for (const s of serviceData) {
+          if (s.slug.includes(q) || s.name.toLowerCase().includes(q)) {
+            window.location.href = '/bogota/' + s.slug;
+            return;
+          }
+        }
+        window.location.href = '/servicios';
+      });
+    </script>
   </body>
 </html>

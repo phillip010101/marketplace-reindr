@@ -72,6 +72,8 @@ const canonicalUrl = `${siteOrigin}/admin/login`;
 
       form?.addEventListener('submit', async (event) => {
         event.preventDefault();
+        const btn = form.querySelector<HTMLButtonElement>('button[type="submit"]');
+        if (btn) { btn.disabled = true; btn.textContent = 'Entrando...'; }
         const formData = new FormData(form);
         const email = String(formData.get('email') ?? '').trim();
         const password = String(formData.get('password') ?? '');
@@ -83,11 +85,13 @@ const canonicalUrl = `${siteOrigin}/admin/login`;
         });
 
         if (!result.ok || !result.data) {
+          if (btn) { btn.disabled = false; btn.textContent = 'Entrar al admin'; }
           setStatus('Credenciales invalidas.', 'error');
           return;
         }
 
         if (result.data.actor.role !== 'admin') {
+          if (btn) { btn.disabled = false; btn.textContent = 'Entrar al admin'; }
           setStatus('Esta cuenta no tiene rol admin.', 'error');
           return;
         }

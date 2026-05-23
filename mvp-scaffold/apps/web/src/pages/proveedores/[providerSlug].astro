@@ -4,6 +4,7 @@ import {
   providerTemplateInlineStyle,
   resolveProviderTemplateWithFallback
 } from '../../scripts/provider-template';
+import { getServiceName } from '../../data/catalog';
 
 type ProviderProfileData = {
   id: string;
@@ -42,6 +43,15 @@ const canonicalUrl = `${siteOrigin}/proveedores/${slug}`;
 const template = provider
   ? resolveProviderTemplateWithFallback(provider.template_id)
   : resolveProviderTemplateWithFallback('craft-paper');
+
+const providerCity = provider?.city ?? 'bogota';
+
+function formatWaNumber(phone: string): string {
+  const digits = phone.replace(/\D/g, '');
+  if (digits.startsWith('57')) return digits;
+  if (digits.startsWith('+57')) return digits.slice(1);
+  return '57' + digits;
+}
 ---
 
 <html lang="es">
@@ -67,27 +77,34 @@ const template = provider
       ) : (
         <>
           <a href="/servicios">&larr; Servicios</a>
+
+          {provider.logo_url ? (
+            <img src={provider.logo_url} alt={provider.display_name} style="max-width:120px; max-height:80px; border-radius:8px; margin:12px 0;" />
+          ) : null}
+
           <h1>{provider.display_name}</h1>
           <p>{provider.description}</p>
 
-          {provider.website_url ? (
-            <p><strong>Sitio web:</strong> <a href={provider.website_url} rel="noopener">{provider.website_url}</a></p>
-          ) : null}
-          {provider.whatsapp ? (
-            <p><strong>WhatsApp:</strong> {provider.whatsapp}</p>
-          ) : null}
-          {provider.phone ? (
-            <p><strong>Telefono:</strong> {provider.phone}</p>
+          {provider.cover_url ? (
+            <img src={provider.cover_url} alt="" style="width:100%; max-height:200px; object-fit:cover; border-radius:12px; margin:12px 0;" />
           ) : null}
 
-          <p id="provider-template-label" style="font-size:13px; margin-top:6px;">Template: {template.name}</p>
+          {provider.website_url ? (
+            <p><strong>Sitio web:</strong> <a href={provider.website_url} rel="noopener" target="_blank">{provider.website_url.replace(/^https?:\/\//,'')}</a></p>
+          ) : null}
+          {provider.phone ? (
+            <p><strong>Telefono:</strong> <a href={`tel:${provider.phone}`}>{provider.phone}</a></p>
+          ) : null}
+          {provider.whatsapp ? (
+            <p><strong>WhatsApp:</strong> <a href={`https://wa.me/${formatWaNumber(provider.whatsapp)}`} target="_blank" rel="noopener">Enviar mensaje por WhatsApp</a></p>
+          ) : null}
 
           <section style="margin-top: 24px; border: 1px solid var(--provider-border); border-radius: 12px; padding: 14px; background: var(--provider-card-bg);">
             <h2>Servicios</h2>
             <ul>
               {provider.services?.map((serviceSlug: string) => (
                 <li>
-                  <a href={`/bogota/${serviceSlug}`} style="color: var(--provider-accent);">{serviceSlug}</a>
+                  <a href={`/${providerCity}/${serviceSlug}`} style="color: var(--provider-accent);">{getServiceName(serviceSlug)}</a>
                 </li>
               ))}
             </ul>
@@ -101,7 +118,7 @@ const template = provider
               <ul style="display: grid; gap: 12px; padding-left: 20px;">
                 {provider.reviews?.filter((r: any) => r.status === 'approved').map((review: any) => (
                   <li>
-                    <strong>{review.title}</strong> ({review.rating}/5)
+                    <strong>{review.title}</strong> ({'★'.repeat(review.rating)}{'☆'.repeat(5 - review.rating)})
                     <p style="margin: 6px 0;">{review.body}</p>
                     <small>{review.author_label} - {new Date(review.created_at).toLocaleDateString('es-CO')}</small>
                   </li>
@@ -113,7 +130,7 @@ const template = provider
           <section style="margin-top: 24px; border: 1px solid var(--provider-border); border-radius: 12px; padding: 16px; background: var(--provider-card-bg);">
             <h2>Solicita cotizacion</h2>
             <p>Inicia por el servicio principal para enviar una sola solicitud y conectar servicios complementarios.</p>
-            <a href={`/bogota/${provider.services?.[0] ?? 'cajas-personalizadas'}`} style="color: var(--provider-accent);">Ir al formulario</a>
+            <a href={`/${providerCity}/${provider.services?.[0] ?? 'cajas-personalizadas'}`} style="color: var(--provider-accent);">Ir al formulario</a>
           </section>
         </>
       )}

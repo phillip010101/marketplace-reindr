@@ -77,6 +77,8 @@ const canonicalUrl = `${siteOrigin}/panel/login`;
 
       form?.addEventListener('submit', async (event) => {
         event.preventDefault();
+        const btn = form.querySelector<HTMLButtonElement>('button[type="submit"]');
+        if (btn) { btn.disabled = true; btn.textContent = 'Entrando...'; }
         const formData = new FormData(form);
         const email = String(formData.get('email') ?? '').trim();
         const password = String(formData.get('password') ?? '');
@@ -88,12 +90,14 @@ const canonicalUrl = `${siteOrigin}/panel/login`;
         });
 
         if (!result.ok || !result.data) {
+          if (btn) { btn.disabled = false; btn.textContent = 'Entrar al panel'; }
           setStatus('Credenciales invalidas.', 'error');
           return;
         }
 
         if (result.data.actor.role !== 'provider') {
-          setStatus('Esta cuenta no tiene rol provider.', 'error');
+          if (btn) { btn.disabled = false; btn.textContent = 'Entrar al panel'; }
+          setStatus('Esta cuenta no tiene rol de proveedor.', 'error');
           return;
         }
 

@@ -65,9 +65,16 @@ export function toPublicProviderProfile(input: PublicProviderCardInput) {
     slug: input.slug,
     display_name: input.display_name,
     description: input.description,
-    services: input.services,
+    services: input.services ?? [],
     city: input.city,
     template_id: input.template_id,
+    phone: (input as any).phone ?? null,
+    whatsapp: (input as any).whatsapp ?? null,
+    website_url: (input as any).website_url ?? null,
+    logo_url: (input as any).logo_url ?? null,
+    cover_url: (input as any).cover_url ?? null,
+    instagram: (input as any).instagram ?? null,
+    facebook: (input as any).facebook ?? null,
     reviews_count: input.reviews_count ?? 0,
     rating_avg: input.rating_avg ?? null
   };

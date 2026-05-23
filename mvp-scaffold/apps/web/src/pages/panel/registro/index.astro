@@ -66,6 +66,8 @@ const canonicalUrl = `${siteOrigin}/panel/registro`;
 
       form?.addEventListener('submit', async (event) => {
         event.preventDefault();
+        const btn = form.querySelector<HTMLButtonElement>('button[type="submit"]');
+        if (btn) { btn.disabled = true; btn.textContent = 'Creando cuenta...'; }
         const formData = new FormData(form);
         const email = String(formData.get('email') ?? '').trim();
         const password = String(formData.get('password') ?? '');
@@ -83,6 +85,7 @@ const canonicalUrl = `${siteOrigin}/panel/registro`;
         });
 
         if (!result.ok) {
+          if (btn) { btn.disabled = false; btn.textContent = 'Crear cuenta y entrar al panel'; }
           const msg = result.error && typeof result.error === 'object' && 'message' in (result.error as any)
             ? (result.error as any).message
             : 'Error al crear la cuenta.';

@@ -22,6 +22,13 @@ type PublicProviderRow = {
   slug: string;
   display_name: string;
   description: string | null;
+  phone: string | null;
+  whatsapp: string | null;
+  website_url: string | null;
+  logo_url: string | null;
+  cover_url: string | null;
+  instagram: string | null;
+  facebook: string | null;
   city_slug: string | null;
   services: string[] | null;
   template_id: string | null;
@@ -43,9 +50,16 @@ function toPublicProviderRecord(row: PublicProviderRow): PublicProviderRecord {
     city: row.city_slug ?? '',
     services: row.services ?? [],
     template_id: templateId,
+    phone: row.phone ?? null,
+    whatsapp: row.whatsapp ?? null,
+    website_url: row.website_url ?? null,
+    logo_url: row.logo_url ?? null,
+    cover_url: row.cover_url ?? null,
+    instagram: row.instagram ?? null,
+    facebook: row.facebook ?? null,
     reviews_count: Number(row.reviews_count ?? 0),
     rating_avg: row.rating_avg === null ? null : Number(row.rating_avg)
-  };
+  } as any;
 }
 
 function fallbackPublicProvider(slug: string): PublicProviderRecord | null {
@@ -79,6 +93,13 @@ export async function resolvePublicProviderBySlug(slug: string): Promise<PublicP
           p.slug,
           p.display_name,
           p.description,
+          p.phone,
+          p.whatsapp,
+          p.website_url,
+          p.logo_url,
+          p.cover_url,
+          p.instagram,
+          p.facebook,
           p.template_id,
           MIN(loc.slug) AS city_slug,
           COALESCE(
@@ -101,7 +122,7 @@ export async function resolvePublicProviderBySlug(slug: string): Promise<PublicP
           ON r.provider_id = p.id
         WHERE p.slug = $1
           AND p.status = 'active'
-        GROUP BY p.id, p.slug, p.display_name, p.description
+        GROUP BY p.id, p.slug, p.display_name, p.description, p.phone, p.whatsapp, p.website_url, p.logo_url, p.cover_url, p.instagram, p.facebook
         LIMIT 1
       `,
       [normalizedSlug]
