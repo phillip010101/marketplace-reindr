@@ -38,6 +38,22 @@ const canonicalUrl = `${siteOrigin}/panel`;
       </section>
 
       <section style="margin-top:24px;">
+        <h2>Wallet</h2>
+        <div style="display:grid; grid-template-columns:repeat(auto-fit,minmax(180px,1fr)); gap:12px;">
+          <article style="border:1px solid #ddd; border-radius:12px; padding:14px;">
+            <p style="margin:0; font-size:13px;">Saldo disponible</p>
+            <strong id="wallet-balance" style="font-size:28px; color:#0b5d1e;">-</strong>
+          </article>
+        </div>
+        <div id="wallet-transactions" style="margin-top:12px; font-size:13px;"></div>
+        <div style="margin-top:12px; display:flex; gap:8px; flex-wrap:wrap;">
+          <input id="topup-amount" type="number" placeholder="Monto COP" min="1000" max="10000000" style="padding:6px; width:140px;" />
+          <button id="topup-btn" type="button" style="padding:8px 16px; background:#0b5d1e; color:#fff; border:none; border-radius:6px; cursor:pointer;">Cargar saldo</button>
+        </div>
+        <p id="wallet-status" style="font-size:13px; margin:6px 0 0;"></p>
+      </section>
+
+      <section style="margin-top:24px;">
         <h2>Metricas rapidas</h2>
         <div style="display:grid; grid-template-columns:repeat(auto-fit,minmax(180px,1fr)); gap:12px;">
           <article style="border:1px solid #ddd; border-radius:12px; padding:14px;">
@@ -182,6 +198,58 @@ const canonicalUrl = `${siteOrigin}/panel`;
         `;
       }
 
+      async function refreshWallet() {
+        const session = await ensureProviderSession({ redirectToLogin: true });
+        if (!session.ok) return;
+
+        const result = await apiRequest<{ balance: number; transactions: { type: string; amount: number; reason: string; created_at: string }[] }>('/api/provider/wallet', {
+          headers: { ...providerAuthHeaders() }
+        });
+
+        const balanceEl = document.querySelector('#wallet-balance');
+        const txEl = document.querySelector('#wallet-transactions');
+
+        if (result.ok && result.data) {
+          if (balanceEl) {
+            balanceEl.textContent = new Intl.NumberFormat('es-CO', { style: 'currency', currency: 'COP', maximumFractionDigits: 0 }).format(result.data.balance);
+          }
+          if (txEl && result.data.transactions.length > 0) {
+            txEl.innerHTML = '<p style="margin:4px 0; opacity:0.7;">Ultimos movimientos:</p>' + result.data.transactions.slice(0, 5).map(t => {
+              const sign = t.type === 'credit' || t.type === 'refund' ? '+' : '-';
+              const color = t.type === 'debit' ? '#a40000' : '#0b5d1e';
+              return `<div style="color:${color}; margin:2px 0;">${sign}$${t.amount.toLocaleString()} — ${t.reason} — ${new Date(t.created_at).toLocaleDateString('es-CO')}</div>`;
+            }).join('');
+          }
+        }
+      }
+
+      document.querySelector('#topup-btn')?.addEventListener('click', async () => {
+        const input = document.querySelector<HTMLInputElement>('#topup-amount');
+        const statusEl = document.querySelector('#wallet-status');
+        const amount = Number(input?.value ?? 0);
+        if (!amount || amount < 1000) {
+          if (statusEl) { statusEl.textContent = 'Ingresa un monto valido (min $1,000).'; statusEl.style.color = '#a40000'; }
+          return;
+        }
+
+        const session = await ensureProviderSession({ redirectToLogin: true });
+        if (!session.ok) return;
+
+        const result = await apiRequest('/api/provider/wallet/topup', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', ...providerAuthHeaders() },
+          body: JSON.stringify({ amount })
+        });
+
+        if (result.ok) {
+          if (input) input.value = '';
+          if (statusEl) { statusEl.textContent = 'Saldo cargado.'; statusEl.style.color = '#0b5d1e'; }
+          refreshWallet();
+        } else {
+          if (statusEl) { statusEl.textContent = 'Error al cargar saldo.'; statusEl.style.color = '#a40000'; }
+        }
+      });
+
       logoutButton?.addEventListener('click', () => {
         clearStoredAccessToken();
         if (metricNew) metricNew.textContent = '-';
@@ -193,6 +261,7 @@ const canonicalUrl = `${siteOrigin}/panel`;
 
       refreshMetrics();
       refreshChecklist();
+      refreshWallet();
     </script>
   </body>
 </html>

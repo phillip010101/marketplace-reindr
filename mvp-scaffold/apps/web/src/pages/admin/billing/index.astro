@@ -1,0 +1,103 @@
+---
+export const prerender = true;
+const siteOrigin = Astro.site ? new URL(Astro.site).origin : 'https://apps.reindr.org';
+const canonicalUrl = `${siteOrigin}/admin/billing`;
+---
+
+<html lang="es">
+  <head>
+    <meta charset="utf-8" />
+    <title>Billing | Admin Reindr</title>
+    <meta name="description" content="Libro mayor de transacciones y billing del marketplace." />
+    <meta name="robots" content="noindex, nofollow" />
+    <link rel="canonical" href={canonicalUrl} />
+    <meta name="viewport" content="width=device-width" />
+    <style>
+      body { margin:0; background:#1a1a2e; color:#e0e0e0; font-family:system-ui,sans-serif; }
+      nav a { color:#e94560; text-decoration:none; margin-right:16px; }
+      .card { background:#16213e; border:1px solid #0f3460; border-radius:12px; padding:16px; margin-bottom:16px; }
+      table { width:100%; border-collapse:collapse; margin-top:8px; }
+      th,td { text-align:left; padding:8px; border-bottom:1px solid #0f3460; font-size:13px; }
+      th { opacity:0.6; }
+      .badge { display:inline-block; padding:2px 8px; border-radius:10px; font-size:11px; }
+    </style>
+  </head>
+  <body>
+    <main style="max-width:1200px; margin:0 auto; padding:32px 20px;">
+      <header style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; margin-bottom:24px;">
+        <h1 style="margin:0; color:#e94560;">Billing</h1>
+        <nav>
+          <a href="/admin">Dashboard</a>
+          <a href="/admin/leads">Leads</a>
+          <a href="/admin/providers">Proveedores</a>
+          <a href="/admin/services">Servicios</a>
+          <a href="/admin/reviews">Reviews</a>
+          <a href="/admin/billing">Billing</a>
+          <button id="logout-btn" style="background:#e94560; color:#fff; border:none; border-radius:6px; padding:6px 14px; cursor:pointer;">Salir</button>
+        </nav>
+      </header>
+
+      <div id="ledger-container">Cargando...</div>
+    </main>
+
+    <script>
+      import {
+        apiRequest, ensureAdminSession, clearStoredAccessToken,
+        adminAuthHeaders, dateLabel, escapeHtml
+      } from '../../../scripts/admin-panel-client';
+
+      type LedgerRow = {
+        id:string; type:string; amount:number; currency:string;
+        reason:string; provider_name:string; provider_slug:string;
+        created_at:string;
+      };
+
+      document.querySelector('#logout-btn')?.addEventListener('click', () => {
+        clearStoredAccessToken(); window.location.href = '/admin/login';
+      });
+
+      function typeBadge(t:string) {
+        const map:Record<string,string> = { credit:'#4ecca3', debit:'#e94560', refund:'#17a2b8', adjustment:'#ffc107' };
+        return `<span class="badge" style="background:${map[t]??'#666'}; color:#000;">${t}</span>`;
+      }
+
+      function renderLedger(rows:LedgerRow[]) {
+        const c = document.querySelector('#ledger-container');
+        if (!c) return;
+        if (!rows.length) { c.innerHTML = '<p>No hay transacciones.</p>'; return; }
+
+        const totalCredit = rows.filter(r=>r.type==='credit'||r.type==='refund').reduce((s,r)=>s+r.amount,0);
+        const totalDebit = rows.filter(r=>r.type==='debit').reduce((s,r)=>s+r.amount,0);
+
+        c.innerHTML = `
+          <div class="card" style="display:grid; grid-template-columns:repeat(auto-fit,minmax(160px,1fr)); gap:12px; margin-bottom:16px;">
+            <div><p style="margin:0; opacity:0.6;">Total creditos</p><strong style="color:#4ecca3;">$${totalCredit.toLocaleString()}</strong></div>
+            <div><p style="margin:0; opacity:0.6;">Total debitos</p><strong style="color:#e94560;">$${totalDebit.toLocaleString()}</strong></div>
+            <div><p style="margin:0; opacity:0.6;">Transacciones</p><strong>${rows.length}</strong></div>
+          </div>
+          <table><thead><tr>
+            <th>Fecha</th><th>Tipo</th><th>Monto</th><th>Proveedor</th><th>Concepto</th>
+          </tr></thead><tbody>
+          ${rows.map(r => `<tr>
+            <td style="font-size:12px;">${dateLabel(r.created_at)}</td>
+            <td>${typeBadge(r.type)}</td>
+            <td>$${r.amount.toLocaleString()} ${r.currency}</td>
+            <td>${escapeHtml(r.provider_name)} <small>(${escapeHtml(r.provider_slug)})</small></td>
+            <td>${escapeHtml(r.reason)}</td>
+          </tr>`).join('')}
+          </tbody></table>`;
+      }
+
+      async function loadLedger() {
+        const session = await ensureAdminSession({ redirectToLogin: true });
+        if (!session.ok) return;
+        const result = await apiRequest<LedgerRow[]>('/api/admin/billing/ledger', {
+          headers: { ...adminAuthHeaders() }
+        });
+        if (result.ok && result.data) renderLedger(result.data);
+      }
+
+      loadLedger();
+    </script>
+  </body>
+</html>
