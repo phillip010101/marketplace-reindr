@@ -1,0 +1,7 @@
+User-agent: *
+Allow: /
+Disallow: /panel/
+Disallow: /admin/
+Disallow: /confirmacion
+
+Sitemap: https://apps.reindr.org/sitemap.xml

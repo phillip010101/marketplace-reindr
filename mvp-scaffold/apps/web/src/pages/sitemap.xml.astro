@@ -1,0 +1,23 @@
+---
+export const prerender = false;
+import { getCollection } from 'astro:content';
+
+const posts = await getCollection('posts');
+const siteOrigin = 'https://apps.reindr.org';
+
+const staticRoutes = ['/','/servicios','/publicaciones'];
+const serviceSlugs = ['cajas-personalizadas','troqueles','impresion','etiquetas','serigrafia-screen','diseno-empaque','fotografia-producto','landing-page','ecommerce'];
+const cityService = ['bogota/cajas-personalizadas','bogota/troqueles','bogota/impresion','bogota/etiquetas'];
+const providers = ['proveedores/cajas-acme','proveedores/troqueles-norte','proveedores/printlab-bogota'];
+
+const urls = [
+  ...staticRoutes.map(r => `<url><loc>${siteOrigin}${r}</loc><changefreq>weekly</changefreq><priority>1.0</priority></url>`),
+  ...serviceSlugs.map(s => `<url><loc>${siteOrigin}/servicios/${s}</loc><changefreq>weekly</changefreq><priority>0.9</priority></url>`),
+  ...cityService.map(r => `<url><loc>${siteOrigin}/${r}</loc><changefreq>weekly</changefreq><priority>0.9</priority></url>`),
+  ...providers.map(r => `<url><loc>${siteOrigin}/${r}</loc><changefreq>daily</changefreq><priority>0.8</priority></url>`),
+  ...posts.map(p => `<url><loc>${siteOrigin}/publicaciones/${p.id}</loc><lastmod>${p.data.pubDate.toISOString().split('T')[0]}</lastmod><changefreq>monthly</changefreq><priority>0.7</priority></url>`)
+];
+
+const xml = `<?xml version="1.0" encoding="UTF-8"?><urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">${urls.join('')}</urlset>`;
+---
+{xml}
