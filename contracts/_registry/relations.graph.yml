@@ -623,3 +623,115 @@ relations:
     to: ADMIN_12
     type: related
     reason: Derived from frontmatter related
+  - from: ONBOARDING_FLOW_43
+    to: SLICE2_41
+    type: depends_on
+    reason: Derived from frontmatter depends_on
+  - from: ONBOARDING_FLOW_43
+    to: API_06
+    type: depends_on
+    reason: Derived from frontmatter depends_on
+  - from: ONBOARDING_FLOW_43
+    to: AUTH_RBAC_28
+    type: depends_on
+    reason: Derived from frontmatter depends_on
+  - from: ONBOARDING_FLOW_43
+    to: PROVIDER_PANEL_11
+    type: depends_on
+    reason: Derived from frontmatter depends_on
+  - from: CONTRACT_TO_CODE_44
+    to: DOD_21
+    type: depends_on
+    reason: Derived from frontmatter depends_on
+  - from: CONTRACT_TO_CODE_44
+    to: RUTA_MAESTRA_39
+    type: depends_on
+    reason: Derived from frontmatter depends_on
+  - from: CONTRACT_TO_CODE_44
+    to: TRAZABILIDAD_24
+    type: related
+    reason: Derived from frontmatter related
+  - from: CONTRACT_TO_CODE_44
+    to: SLICE2_41
+    type: related
+    reason: Derived from frontmatter related
+  - from: WALLET_IMPL_45
+    to: LEADS_BILLING_08
+    type: depends_on
+    reason: Derived from frontmatter depends_on
+  - from: WALLET_IMPL_45
+    to: MONETIZATION_09
+    type: depends_on
+    reason: Derived from frontmatter depends_on
+  - from: WALLET_IMPL_45
+    to: PAYMENTS_FUTURE_14
+    type: depends_on
+    reason: Derived from frontmatter depends_on
+  - from: WALLET_IMPL_45
+    to: API_06
+    type: depends_on
+    reason: Derived from frontmatter depends_on
+  - from: WALLET_IMPL_45
+    to: AUTH_RBAC_28
+    type: depends_on
+    reason: Derived from frontmatter depends_on
+  - from: WALLET_IMPL_45
+    to: STATE_MACHINE_29
+    type: related
+    reason: Derived from frontmatter related
+  - from: WALLET_IMPL_45
+    to: DTO_BOUNDARY_30
+    type: related
+    reason: Derived from frontmatter related
+  - from: WALLET_IMPL_45
+    to: MIGRATIONS_31
+    type: related
+    reason: Derived from frontmatter related
+  - from: CONTENT_SEO_46
+    to: SEO_07
+    type: depends_on
+    reason: Derived from frontmatter depends_on
+  - from: CONTENT_SEO_46
+    to: UIUX_10
+    type: depends_on
+    reason: Derived from frontmatter depends_on
+  - from: CONTENT_SEO_46
+    to: API_06
+    type: related
+    reason: Derived from frontmatter related
+  - from: LOCATIONS_DISPUTE_47
+    to: ADMIN_12
+    type: depends_on
+    reason: Derived from frontmatter depends_on
+  - from: LOCATIONS_DISPUTE_47
+    to: API_06
+    type: depends_on
+    reason: Derived from frontmatter depends_on
+  - from: LOCATIONS_DISPUTE_47
+    to: AUTH_RBAC_28
+    type: depends_on
+    reason: Derived from frontmatter depends_on
+  - from: LOCATIONS_DISPUTE_47
+    to: MIGRATIONS_31
+    type: related
+    reason: Derived from frontmatter related
+  - from: RUTA_ACTUALIZADA_48
+    to: RUTA_DESARROLLO_42
+    type: depends_on
+    reason: Derived from frontmatter depends_on
+  - from: RUTA_ACTUALIZADA_48
+    to: CONTRACT_TO_CODE_44
+    type: depends_on
+    reason: Derived from frontmatter depends_on
+  - from: RUTA_ACTUALIZADA_48
+    to: ONBOARDING_FLOW_43
+    type: depends_on
+    reason: Derived from frontmatter depends_on
+  - from: RUTA_ACTUALIZADA_48
+    to: DOD_21
+    type: related
+    reason: Derived from frontmatter related
+  - from: RUTA_ACTUALIZADA_48
+    to: TRAZABILIDAD_24
+    type: related
+    reason: Derived from frontmatter related

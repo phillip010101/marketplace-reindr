@@ -775,3 +775,120 @@ contracts:
       - API_06
       - ADMIN_12
     agent_read_policy: always_when_touching_module
+  - id: ONBOARDING_FLOW_43
+    file: contracts/43-onboarding-flow.md
+    title: Flujo de onboarding — minima friccion
+    type: analysis
+    status: active
+    priority: high
+    version: 1.0.0
+    summary: "# 43 — Flujo de onboarding: minima friccion "
+    applies_to:
+      - product
+      - engineering
+      - ux
+    depends_on:
+      - SLICE2_41
+      - API_06
+      - AUTH_RBAC_28
+      - PROVIDER_PANEL_11
+    related: []
+    agent_read_policy: when_related
+  - id: CONTRACT_TO_CODE_44
+    file: contracts/44-contract-to-code-guide.md
+    title: "Guia: de contrato a codigo funcional"
+    type: governance
+    status: active
+    priority: critical
+    version: 1.0.0
+    summary: "# 44 — Guia: de contrato a codigo funcional "
+    applies_to:
+      - engineering
+      - product
+      - qa
+    depends_on:
+      - DOD_21
+      - RUTA_MAESTRA_39
+    related:
+      - TRAZABILIDAD_24
+      - SLICE2_41
+    agent_read_policy: always_when_touching_module
+  - id: WALLET_IMPL_45
+    file: contracts/45-wallet-billing-implementation.md
+    title: Wallet y billing — implementacion V1.5
+    type: module
+    status: active
+    priority: high
+    version: 1.0.0
+    summary: "# 45 — Wallet y Billing: implementacion "
+    applies_to:
+      - backend
+      - frontend
+      - database
+    depends_on:
+      - LEADS_BILLING_08
+      - MONETIZATION_09
+      - PAYMENTS_FUTURE_14
+      - API_06
+      - AUTH_RBAC_28
+    related:
+      - STATE_MACHINE_29
+      - DTO_BOUNDARY_30
+      - MIGRATIONS_31
+    agent_read_policy: always_when_touching_module
+  - id: CONTENT_SEO_46
+    file: contracts/46-content-seo-implementation.md
+    title: Contenido SEO y blog — implementacion
+    type: module
+    status: active
+    priority: medium
+    version: 1.0.0
+    summary: "# 46 — Contenido SEO y Blog "
+    applies_to:
+      - frontend
+      - content
+    depends_on:
+      - SEO_07
+      - UIUX_10
+    related:
+      - API_06
+    agent_read_policy: when_related
+  - id: LOCATIONS_DISPUTE_47
+    file: contracts/47-locations-disputes-images.md
+    title: Ubicaciones admin + Disputas + Imagenes — contratos pendientes
+    type: module
+    status: active
+    priority: medium
+    version: 1.0.0
+    summary: "# 47 — Ubicaciones, Disputas e Imagenes "
+    applies_to:
+      - backend
+      - frontend
+      - admin
+    depends_on:
+      - ADMIN_12
+      - API_06
+      - AUTH_RBAC_28
+    related:
+      - MIGRATIONS_31
+    agent_read_policy: when_related
+  - id: RUTA_ACTUALIZADA_48
+    file: contracts/48-ruta-desarrollo-actualizada-v3.md
+    title: Ruta de desarrollo maestra — Mayo 2026 (post-auditoria)
+    type: governance
+    status: active
+    priority: critical
+    version: 3.0.0
+    summary: "# 48 — Ruta de desarrollo maestra (actualizada) "
+    applies_to:
+      - engineering
+      - product
+      - qa
+    depends_on:
+      - RUTA_DESARROLLO_42
+      - CONTRACT_TO_CODE_44
+      - ONBOARDING_FLOW_43
+    related:
+      - DOD_21
+      - TRAZABILIDAD_24
+    agent_read_policy: always_when_touching_module
