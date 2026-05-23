@@ -62,6 +62,17 @@ const canonicalUrl = `${siteOrigin}/panel/perfil`;
               <input name="cover_url" type="url" placeholder="https://..." />
             </label>
           </div>
+          <div style="display:grid; grid-template-columns:repeat(auto-fit,minmax(220px,1fr)); gap:10px;">
+            <label>
+              Instagram
+              <input name="instagram" placeholder="@usuario" />
+            </label>
+            <label>
+              Facebook
+              <input name="facebook" placeholder="URL pagina" />
+            </label>
+          </div>
+          <div id="logo-preview" style="margin-top:8px;"></div>
           <label>
             Plantilla publica
             <select name="template_id" required>
@@ -199,8 +210,25 @@ const canonicalUrl = `${siteOrigin}/panel/perfil`;
         set('logo_url', profile.logo_url);
         set('cover_url', profile.cover_url);
         set('template_id', profile.template_id);
+        set('instagram', profile.instagram);
+        set('facebook', profile.facebook);
         applyTemplatePreview(profile.template_id);
+        showLogoPreview(String(profile.logo_url ?? ''));
       }
+
+      function showLogoPreview(url: string) {
+        const el = document.querySelector('#logo-preview');
+        if (!el) return;
+        if (url && (url.endsWith('.jpg') || url.endsWith('.png') || url.endsWith('.webp') || url.endsWith('.jpeg') || url.includes('http'))) {
+          el.innerHTML = `<img src="${url}" style="max-width:120px; max-height:80px; border-radius:8px; border:1px solid #ddd;" onerror="this.style.display='none'" />`;
+        } else {
+          el.innerHTML = '';
+        }
+      }
+
+      document.querySelector<HTMLInputElement>('[name="logo_url"]')?.addEventListener('input', function() {
+        showLogoPreview(this.value);
+      });
 
       async function loadProfile() {
         const session = await ensureProviderSession({
@@ -251,6 +279,8 @@ const canonicalUrl = `${siteOrigin}/panel/perfil`;
           website_url: String(formData.get('website_url') ?? '').trim(),
           logo_url: String(formData.get('logo_url') ?? '').trim(),
           cover_url: String(formData.get('cover_url') ?? '').trim(),
+          instagram: String(formData.get('instagram') ?? '').trim(),
+          facebook: String(formData.get('facebook') ?? '').trim(),
           template_id: String(formData.get('template_id') ?? '').trim()
         };
 

@@ -30,6 +30,8 @@ const UpdateProviderProfileSchema = z.object({
   website_url: z.string().url().max(300).optional(),
   logo_url: z.string().url().max(500).optional(),
   cover_url: z.string().url().max(500).optional(),
+  instagram: z.string().max(120).optional(),
+  facebook: z.string().max(200).optional(),
   template_id: z
     .string()
     .trim()
@@ -57,6 +59,8 @@ type ProviderProfileRow = {
   website_url: string | null;
   logo_url: string | null;
   cover_url: string | null;
+  instagram: string | null;
+  facebook: string | null;
   status: string;
   verified_at: string | null;
   service_slugs: string[] | null;
@@ -163,6 +167,8 @@ async function fetchProviderProfileByAccount(accountId: string): Promise<Provide
        p.website_url,
        p.logo_url,
        p.cover_url,
+       p.instagram,
+       p.facebook,
        p.template_id,
        p.status,
        p.verified_at::text,
@@ -217,6 +223,8 @@ providerRoute.get('/me', async (c) => {
         website_url: profile.website_url,
         logo_url: profile.logo_url,
         cover_url: profile.cover_url,
+        instagram: profile.instagram,
+        facebook: profile.facebook,
         template_id: resolveProviderTemplateId(profile),
         status: profile.status,
         verified_at: profile.verified_at,
@@ -274,9 +282,11 @@ providerRoute.patch('/me', async (c) => {
            website_url = COALESCE($5, website_url),
            logo_url = COALESCE($6, logo_url),
            cover_url = COALESCE($7, cover_url),
-           template_id = COALESCE($8, template_id),
+           instagram = COALESCE($8, instagram),
+           facebook = COALESCE($9, facebook),
+           template_id = COALESCE($10, template_id),
            updated_at = now()
-       WHERE account_id = $9`,
+       WHERE account_id = $11`,
       [
         cleanOptionalText(updates.display_name),
         cleanOptionalText(updates.description),
@@ -285,6 +295,8 @@ providerRoute.patch('/me', async (c) => {
         cleanOptionalText(updates.website_url),
         cleanOptionalText(updates.logo_url),
         cleanOptionalText(updates.cover_url),
+        cleanOptionalText(updates.instagram),
+        cleanOptionalText(updates.facebook),
         cleanOptionalText(updates.template_id),
         actor.accountId
       ]
@@ -311,6 +323,8 @@ providerRoute.patch('/me', async (c) => {
         website_url: profile.website_url,
         logo_url: profile.logo_url,
         cover_url: profile.cover_url,
+        instagram: profile.instagram,
+        facebook: profile.facebook,
         template_id: resolveProviderTemplateId(profile),
         status: profile.status,
         verified_at: profile.verified_at,
@@ -705,25 +719,31 @@ providerRoute.get('/metrics', async (c) => {
     const providerId = await resolveProviderIdFromAccount(actor.accountId);
     const pool = getPool();
 
-    const result = await pool.query<ProviderMetricsRow>(
-      `SELECT
-         COUNT(*)::int AS total,
-         SUM(CASE WHEN lo.status IN ('new', 'viewed') THEN 1 ELSE 0 END)::int AS new_count,
-         SUM(CASE WHEN lo.status = 'contacted' THEN 1 ELSE 0 END)::int AS contacted_count,
-         SUM(CASE WHEN lo.status = 'quoted' THEN 1 ELSE 0 END)::int AS quoted_count,
-         SUM(CASE WHEN lo.status IN ('won', 'lost', 'rejected', 'invalid') THEN 1 ELSE 0 END)::int AS closed_count
-       FROM lead_opportunities lo
-       WHERE lo.provider_id = $1`,
-      [providerId]
-    );
+    const [result, walletResult] = await Promise.all([
+      pool.query<ProviderMetricsRow>(
+        `SELECT
+           COUNT(*)::int AS total,
+           SUM(CASE WHEN lo.status IN ('new', 'viewed') THEN 1 ELSE 0 END)::int AS new_count,
+           SUM(CASE WHEN lo.status = 'contacted' THEN 1 ELSE 0 END)::int AS contacted_count,
+           SUM(CASE WHEN lo.status = 'quoted' THEN 1 ELSE 0 END)::int AS quoted_count,
+           SUM(CASE WHEN lo.status IN ('won', 'lost', 'rejected', 'invalid') THEN 1 ELSE 0 END)::int AS closed_count
+         FROM lead_opportunities lo
+         WHERE lo.provider_id = $1`,
+        [providerId]
+      ),
+      pool.query<{ balance: string }>(
+        `SELECT COALESCE(SUM(CASE WHEN type IN ('credit','refund') THEN amount ELSE -amount END), 0)::text AS balance
+         FROM wallet_transactions WHERE provider_id = $1`, [providerId]
+      )
+    ]);
 
     const row = result.rows[0] ?? {
-      total: 0,
-      new_count: 0,
-      contacted_count: 0,
-      quoted_count: 0,
-      closed_count: 0
+      total: 0, new_count: 0, contacted_count: 0, quoted_count: 0, closed_count: 0
     };
+
+    const responseRate = Number(row.total ?? 0) > 0
+      ? Math.round((Number(row.contacted_count ?? 0) + Number(row.quoted_count ?? 0) + Number(row.closed_count ?? 0)) / Number(row.total ?? 0) * 100)
+      : 0;
 
     return c.json({
       ok: true,
@@ -732,7 +752,9 @@ providerRoute.get('/metrics', async (c) => {
         new: Number(row.new_count ?? 0),
         contacted: Number(row.contacted_count ?? 0),
         quoted: Number(row.quoted_count ?? 0),
-        closed: Number(row.closed_count ?? 0)
+        closed: Number(row.closed_count ?? 0),
+        response_rate: responseRate,
+        wallet_balance: Number(walletResult.rows[0]?.balance ?? 0)
       }
     });
   } catch (error) {

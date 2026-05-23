@@ -19,6 +19,7 @@ function extractBearerToken(rawAuthorization: string | undefined): string | null
 export function requireActor(c: Context): RequestActor {
   const token = extractBearerToken(c.req.header('authorization'));
   if (!token) {
+    console.warn(`[audit] access_denied reason=no_token path=${c.req.path} ip=${c.req.header('x-forwarded-for') ?? 'unknown'}`);
     throw new ApiRequestError(401, {
       code: 'UNAUTHORIZED',
       message: 'Se requiere autenticacion para esta ruta privada.'
@@ -27,6 +28,7 @@ export function requireActor(c: Context): RequestActor {
 
   const payload = verifyAccessToken(token);
   if (!payload) {
+    console.warn(`[audit] access_denied reason=invalid_token path=${c.req.path}`);
     throw new ApiRequestError(401, {
       code: 'UNAUTHORIZED',
       message: 'Token invalido o expirado.'
