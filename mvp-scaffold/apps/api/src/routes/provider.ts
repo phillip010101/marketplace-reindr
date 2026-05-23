@@ -531,6 +531,80 @@ providerRoute.post('/leads/:opportunityId/quote', async (c) => {
 
 // ── Provider Services Management ──────────────────────────────────
 
+// ── Lead Dispute ──────────────────────────────────────────────────
+
+const DisputeSchema = z.object({
+  reason: z.string().min(5).max(500),
+  details: z.string().max(2000).optional()
+});
+
+providerRoute.post('/leads/:opportunityId/dispute', async (c) => {
+  try {
+    const actor = requireProviderActor(c);
+    const providerId = await resolveProviderIdFromAccount(actor.accountId);
+    const opportunityId = c.req.param('opportunityId');
+    const parsed = DisputeSchema.safeParse(await c.req.json());
+    if (!parsed.success) {
+      const failure = errorResponse(400, {
+        code: 'VALIDATION_ERROR',
+        message: 'Datos invalidos',
+        fields: parsed.error.flatten().fieldErrors
+      });
+      return c.json(failure.body, failure.status);
+    }
+
+    const pool = getPool();
+    const opp = await pool.query<{ lead_id: string; valid_for_billing: boolean; status: string }>(
+      `SELECT lead_id::text, valid_for_billing, status
+       FROM lead_opportunities
+       WHERE id::text = $1 AND provider_id = $2`,
+      [opportunityId, providerId]
+    );
+
+    if (opp.rowCount === 0) {
+      const failure = errorResponse(404, {
+        code: 'NOT_FOUND',
+        message: 'Oportunidad no encontrada.'
+      });
+      return c.json(failure.body, failure.status);
+    }
+
+    if (!opp.rows[0].valid_for_billing) {
+      const failure = errorResponse(400, {
+        code: 'INVALID_STATE',
+        message: 'Solo podes disputar leads que fueron facturados.'
+      });
+      return c.json(failure.body, failure.status);
+    }
+
+    await pool.query(
+      `INSERT INTO lead_events (lead_id, opportunity_id, actor_type, actor_id, event_type, payload)
+       VALUES ($1, $2, 'provider', $3, 'dispute_opened', $4::jsonb)`,
+      [opp.rows[0].lead_id, opportunityId, actor.accountId, JSON.stringify({
+        reason: parsed.data.reason,
+        details: parsed.data.details ?? null
+      })]
+    );
+
+    return c.json({
+      ok: true,
+      data: { opportunity_id: opportunityId, status: 'disputed' }
+    });
+  } catch (error) {
+    if (error instanceof ApiRequestError) {
+      const failure = errorResponse(error.status, error.payload);
+      return c.json(failure.body, failure.status);
+    }
+    const failure = errorResponse(500, {
+      code: 'INTERNAL_ERROR',
+      message: 'No fue posible abrir la disputa.'
+    });
+    return c.json(failure.body, failure.status);
+  }
+});
+
+// ── Provider Services Management ──────────────────────────────────
+
 const UpdateProviderServicesSchema = z.object({
   services: z.array(z.string().min(2).max(80)).max(50),
   cities: z.array(z.string().min(2).max(80)).max(20).optional().default(['bogota'])

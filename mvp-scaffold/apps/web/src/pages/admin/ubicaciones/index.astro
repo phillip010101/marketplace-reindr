@@ -1,0 +1,103 @@
+---
+export const prerender = true;
+const siteOrigin = Astro.site ? new URL(Astro.site).origin : 'https://apps.reindr.org';
+---
+
+<html lang="es">
+  <head>
+    <meta charset="utf-8" />
+    <title>Ubicaciones | Admin Reindr</title>
+    <meta name="description" content="Gestion de ubicaciones del marketplace." />
+    <meta name="robots" content="noindex, nofollow" />
+    <link rel="canonical" href={`${siteOrigin}/admin/ubicaciones`} />
+    <meta name="viewport" content="width=device-width" />
+    <style>
+      body { margin:0; background:#1a1a2e; color:#e0e0e0; font-family:system-ui,sans-serif; }
+      nav a { color:#e94560; text-decoration:none; margin-right:16px; }
+      .card { background:#16213e; border:1px solid #0f3460; border-radius:12px; padding:16px; margin-bottom:16px; }
+      table { width:100%; border-collapse:collapse; margin-top:8px; }
+      th,td { text-align:left; padding:8px; border-bottom:1px solid #0f3460; font-size:13px; }
+      th { opacity:0.6; }
+      input,select,button { padding:6px 10px; border:1px solid #0f3460; border-radius:4px; background:#1a1a2e; color:#ccc; }
+    </style>
+  </head>
+  <body>
+    <main style="max-width:1100px; margin:0 auto; padding:32px 20px;">
+      <header style="display:flex; justify-content:space-between; flex-wrap:wrap; margin-bottom:24px;">
+        <h1 style="margin:0; color:#e94560;">Ubicaciones</h1>
+        <nav>
+          <a href="/admin">Dashboard</a> <a href="/admin/leads">Leads</a>
+          <a href="/admin/providers">Proveedores</a> <a href="/admin/services">Servicios</a>
+          <a href="/admin/reviews">Reviews</a> <a href="/admin/billing">Billing</a>
+          <a href="/admin/ubicaciones">Ubicaciones</a>
+          <button id="logout-btn" style="background:#e94560;color:#fff;border:none;border-radius:6px;padding:6px 14px;cursor:pointer;">Salir</button>
+        </nav>
+      </header>
+
+      <div class="card">
+        <h3 style="margin-top:0;">Nueva ubicacion</h3>
+        <form id="create-form" style="display:grid; gap:8px; max-width:400px;">
+          <input name="name" placeholder="Nombre (ej. Barranquilla)" required />
+          <input name="slug" placeholder="Slug (ej. barranquilla)" required pattern="[a-z0-9-]+" />
+          <select name="type"><option value="city">Ciudad</option><option value="zone">Zona</option><option value="region">Region</option><option value="country">Pais</option></select>
+          <button type="submit" style="background:#4ecca3;color:#000;border:none;padding:8px;border-radius:4px;cursor:pointer;">Crear ubicacion</button>
+        </form>
+        <p id="create-status" style="font-size:13px;"></p>
+      </div>
+
+      <div id="locations-container">Cargando...</div>
+    </main>
+
+    <script>
+      import { apiRequest, ensureAdminSession, clearStoredAccessToken, adminAuthHeaders, escapeHtml } from '../../../scripts/admin-panel-client';
+
+      type LocationRow = { id:string; name:string; slug:string; type:string };
+
+      document.querySelector('#logout-btn')?.addEventListener('click', () => { clearStoredAccessToken(); window.location.href='/admin/login'; });
+
+      function render(rows:LocationRow[]) {
+        const c = document.querySelector('#locations-container');
+        if (!c) return;
+        if (!rows.length) { c.innerHTML='<p>No hay ubicaciones.</p>'; return; }
+        c.innerHTML = `<table><thead><tr><th>Nombre</th><th>Slug</th><th>Tipo</th><th></th></tr></thead><tbody>
+        ${rows.map(r => `<tr>
+          <td>${escapeHtml(r.name)}</td><td>${escapeHtml(r.slug)}</td><td>${escapeHtml(r.type)}</td>
+          <td><button onclick="editLoc('${r.id}','${r.slug}','${r.name}','${r.type}')" style="background:#0f3460;color:#fff;border:none;padding:4px 8px;border-radius:4px;cursor:pointer;">Editar</button></td>
+        </tr>`).join('')}
+        </tbody></table>`;
+      }
+
+      (window as any).editLoc = function(id:string, slug:string, name:string, type:string) {
+        const newName = prompt('Nuevo nombre:', name);
+        if (!newName) return;
+        const newSlug = prompt('Nuevo slug:', slug);
+        if (!newSlug) return;
+        const newType = prompt('Nuevo tipo (city/zone/region/country):', type);
+        if (!newType) return;
+        (async () => {
+          const s = await ensureAdminSession({redirectToLogin:true}); if(!s.ok) return;
+          await apiRequest(`/api/locations/${id}`, { method:'PATCH', headers:{...adminAuthHeaders(),'Content-Type':'application/json'}, body:JSON.stringify({name:newName,slug:newSlug,type:newType}) });
+          load();
+        })();
+      };
+
+      async function load() {
+        const s = await ensureAdminSession({redirectToLogin:true}); if(!s.ok) return;
+        const r = await apiRequest<LocationRow[]>('/api/locations', {headers:{...adminAuthHeaders()}});
+        if (r.ok && r.data) render(r.data);
+      }
+
+      document.querySelector('#create-form')?.addEventListener('submit', async e => {
+        e.preventDefault();
+        const s = await ensureAdminSession({redirectToLogin:true}); if(!s.ok) return;
+        const fd = new FormData(e.target as HTMLFormElement);
+        const st = document.querySelector('#create-status');
+        const r = await apiRequest('/api/locations', { method:'POST', headers:{...adminAuthHeaders(),'Content-Type':'application/json'}, body:JSON.stringify({name:fd.get('name'),slug:fd.get('slug'),type:fd.get('type')}) });
+        if(st) { st.textContent=r.ok?'Creada.':'Error.'; st.style.color=r.ok?'#4ecca3':'#e94560'; }
+        if(r.ok) { (e.target as HTMLFormElement).reset(); load(); }
+      });
+
+      load();
+    </script>
+  </body>
+</html>

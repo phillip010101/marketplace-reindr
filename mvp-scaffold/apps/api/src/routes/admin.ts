@@ -1456,3 +1456,71 @@ adminRoute.get('/metrics', async (c) => {
     return c.json(failure.body, failure.status);
   }
 });
+
+// ── Disputes ──────────────────────────────────────────────────────
+
+adminRoute.get('/disputes', async (c) => {
+  try {
+    requireAdminActor(c);
+    const pool = getPool();
+    const result = await pool.query(
+      `SELECT le.id::text, le.lead_id::text, le.opportunity_id::text, le.event_type, le.payload, le.created_at,
+         p.display_name AS provider_name, p.slug AS provider_slug, lo.status AS opportunity_status
+       FROM lead_events le
+       JOIN lead_opportunities lo ON lo.id = le.opportunity_id
+       JOIN providers p ON p.id = lo.provider_id
+       WHERE le.event_type = 'dispute_opened'
+       ORDER BY le.created_at DESC LIMIT 50`
+    );
+    return c.json({ ok: true, data: result.rows });
+  } catch (error) {
+    if (error instanceof ApiRequestError) {
+      const failure = errorResponse(error.status, error.payload);
+      return c.json(failure.body, failure.status);
+    }
+    const failure = errorResponse(500, { code: 'INTERNAL_ERROR', message: 'No fue posible listar disputas.' });
+    return c.json(failure.body, failure.status);
+  }
+});
+
+adminRoute.post('/disputes/:eventId/resolve', async (c) => {
+  try {
+    const actor = requireAdminActor(c);
+    const eventId = c.req.param('eventId');
+    const pool = getPool();
+    const body = await c.req.json();
+    const resolution = String(body?.resolution ?? '');
+    if (!['accepted', 'rejected'].includes(resolution)) {
+      const failure = errorResponse(400, { code: 'VALIDATION_ERROR', message: 'resolution debe ser accepted o rejected.' });
+      return c.json(failure.body, failure.status);
+    }
+    const dispute = await pool.query<{ lead_id: string; opportunity_id: string }>(
+      `SELECT lead_id::text, opportunity_id::text FROM lead_events
+       WHERE id::text = $1 AND event_type = 'dispute_opened'`,
+      [eventId]
+    );
+    if (dispute.rowCount === 0) {
+      const failure = errorResponse(404, { code: 'NOT_FOUND', message: 'Disputa no encontrada.' });
+      return c.json(failure.body, failure.status);
+    }
+    const { lead_id, opportunity_id } = dispute.rows[0];
+    await pool.query(
+      `INSERT INTO lead_events (lead_id, opportunity_id, actor_type, actor_id, event_type, payload)
+       VALUES ($1, $2, 'admin', $3, 'dispute_resolved', $4::jsonb)`,
+      [lead_id, opportunity_id, actor.accountId, JSON.stringify({ resolution, dispute_event_id: eventId })]
+    );
+    await appendAdminEvent({
+      eventType: 'dispute_resolved',
+      actorAccountId: actor.accountId,
+      payload: { dispute_event_id: eventId, resolution, opportunity_id }
+    });
+    return c.json({ ok: true, data: { resolution, opportunity_id } });
+  } catch (error) {
+    if (error instanceof ApiRequestError) {
+      const failure = errorResponse(error.status, error.payload);
+      return c.json(failure.body, failure.status);
+    }
+    const failure = errorResponse(500, { code: 'INTERNAL_ERROR', message: 'No fue posible resolver la disputa.' });
+    return c.json(failure.body, failure.status);
+  }
+});
