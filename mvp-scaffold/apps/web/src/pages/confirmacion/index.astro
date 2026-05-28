@@ -25,6 +25,10 @@ const siteOrigin = Astro.site ? new URL(Astro.site).origin : 'https://apps.reind
         <div id="lead-details" style="margin:24px 0;">
           <p style="opacity:0.7;">Codigo de seguimiento:</p>
           <strong id="lead-code" style="font-size:24px; letter-spacing:.05em;">---</strong>
+          <div style="margin-top:8px;">
+            <button id="copy-btn" type="button" style="padding:6px 16px; background:#0b5d1e; color:#fff; border:none; border-radius:6px; cursor:pointer;">Copiar codigo</button>
+            <span id="copy-status" style="margin-left:8px; font-size:13px;"></span>
+          </div>
         </div>
 
         <p id="opp-count" style="opacity:0.7;"></p>
@@ -53,8 +57,21 @@ const siteOrigin = Astro.site ? new URL(Astro.site).origin : 'https://apps.reind
       if (elCode && code) elCode.textContent = code;
         else if (elCode) elCode.textContent = 'Procesando...';
       if (elCount) elCount.textContent = count !== '0'
-        ? `Se notifico a ${count} proveedor(es).`
+        ? `Se notificó a ${count} proveedor(es).`
         : '';
+
+      document.querySelector('#copy-btn')?.addEventListener('click', async () => {
+        const code = (document.querySelector('#lead-code')?.textContent ?? '').trim();
+        if (!code || code === '---') return;
+        try {
+          await navigator.clipboard.writeText(code);
+          const status = document.querySelector('#copy-status');
+          if (status) { status.textContent = 'Copiado!'; status.style.color = '#0b5d1e'; }
+        } catch {
+          const status = document.querySelector('#copy-status');
+          if (status) { status.textContent = 'No se pudo copiar'; status.style.color = '#a40000'; }
+        }
+      });
     </script>
   </body>
 </html>

@@ -3,19 +3,11 @@ export const prerender = false;
 import { getServiceBySlug, getServiceName } from '../../data/catalog';
 
 type ProviderCard = {
-  id: string;
-  slug: string;
-  display_name: string;
-  description: string;
-  services: string[];
-  city: string;
-  template_id: string;
+  id: string; slug: string; display_name: string; description: string;
+  services: string[]; city: string; template_id: string;
 };
-
-type RelatedService = {
-  slug: string;
-  label: string;
-};
+type RelatedService = { slug: string; label: string };
+type CityItem = { id: string; slug: string; name: string };
 
 const { city, service } = Astro.params;
 const citySlug = (city ?? 'bogota').toLowerCase();
@@ -29,28 +21,24 @@ const serviceName = serviceItem?.name ?? getServiceName(serviceSlug);
 
 let providers: ProviderCard[] = [];
 let related: RelatedService[] = [];
+const cities: CityItem[] = [
+  { id: 'bogota', slug: 'bogota', name: 'Bogotá' },
+  { id: 'medellin', slug: 'medellin', name: 'Medellín' },
+  { id: 'cali', slug: 'cali', name: 'Cali' },
+  { id: 'barranquilla', slug: 'barranquilla', name: 'Barranquilla' }
+];
 
 try {
   const [provRes, relRes] = await Promise.all([
     fetch(`${apiBaseUrl}/api/providers?city=${encodeURIComponent(citySlug)}&service=${encodeURIComponent(serviceSlug)}`),
     fetch(`${apiBaseUrl}/api/services/${encodeURIComponent(serviceSlug)}/related`)
   ]);
-
-  if (provRes.ok) {
-    const json = await provRes.json();
-    providers = (json.data ?? []) as ProviderCard[];
-  }
-
+  if (provRes.ok) { const json = await provRes.json(); providers = (json.data ?? []) as ProviderCard[]; }
   if (relRes.ok) {
     const json = await relRes.json();
-    related = (json.data ?? []).map((r: any) => ({
-      slug: r.slug ?? r.target_service_slug,
-      label: r.name ?? r.label ?? r.target_service_name ?? r.slug
-    }));
+    related = (json.data ?? []).map((r: any) => ({ slug: r.slug ?? r.target_service_slug, label: r.name ?? r.label ?? r.target_service_name ?? r.slug }));
   }
-} catch {
-  // Keep empty arrays as fallback
-}
+} catch { /* fallback */ }
 
 const siteOrigin = Astro.site ? new URL(Astro.site).origin : 'https://apps.reindr.org';
 const canonicalUrl = `${siteOrigin}/${citySlug}/${serviceSlug}`;
@@ -63,6 +51,14 @@ const canonicalUrl = `${siteOrigin}/${citySlug}/${serviceSlug}`;
     <meta name="description" content={`Encuentra proveedores de ${serviceName} en ${citySlug} y solicita servicios relacionados.`} />
     <link rel="canonical" href={canonicalUrl} />
     <meta name="viewport" content="width=device-width" />
+    <style>
+      .stepper { display:flex; gap:0; margin-bottom:20px; }
+      .step-dot { flex:1; text-align:center; padding:8px; font-size:13px; border-bottom:3px solid #ddd; opacity:0.5; }
+      .step-dot.active { border-color:#0b5d1e; opacity:1; font-weight:600; }
+      .step-dot.done { border-color:#4ecca3; opacity:0.8; }
+      .field-error { color:#a40000; font-size:12px; margin-top:2px; display:none; }
+      input:invalid, textarea:invalid { border-color:#a40000; }
+    </style>
   </head>
   <body>
     <main style="max-width: 960px; margin: 0 auto; padding: 48px 20px; font-family: system-ui, sans-serif;">
@@ -76,11 +72,8 @@ const canonicalUrl = `${siteOrigin}/${citySlug}/${serviceSlug}`;
           <p>Aun no hay proveedores activos para este servicio en esta ciudad.</p>
         ) : (
           <ul>
-            {providers.map((provider) => (
-              <li>
-                <a href={`/proveedores/${provider.slug}`}>{provider.display_name}</a>
-                {provider.description ? <p style="margin:4px 0; opacity:0.7; font-size:14px;">{provider.description.slice(0, 120)}</p> : null}
-              </li>
+            {providers.map((p) => (
+              <li><a href={`/proveedores/${p.slug}`}>{p.display_name}</a></li>
             ))}
           </ul>
         )}
@@ -88,55 +81,84 @@ const canonicalUrl = `${siteOrigin}/${citySlug}/${serviceSlug}`;
 
       <section style="margin-top: 32px; border: 1px solid #ddd; border-radius: 16px; padding: 20px;">
         <h2>Solicitar cotizacion</h2>
+
+        <div class="stepper" id="stepper">
+          <div class="step-dot active" data-step="1">Paso 1<br>Necesidad</div>
+          <div class="step-dot" data-step="2">Paso 2<br>Servicios</div>
+          <div class="step-dot" data-step="3">Paso 3<br>Contacto</div>
+        </div>
+
         <form id="lead-form" method="post" action={leadsEndpoint} style="display: grid; gap: 12px;">
-          <input name="city_slug" value={citySlug} type="hidden" />
+          <input name="city_slug" id="city-slug-input" value={citySlug} type="hidden" />
           <input name="primary_service_slug" value={serviceSlug} type="hidden" />
 
           <div data-step="1">
-            <h3>Paso 1: Necesidad base</h3>
-            <textarea name="description" placeholder="Cuentanos que necesitas" required></textarea>
-            <div style="display:flex; justify-content:flex-end;">
-              <button type="button" data-next-step="2">Continuar</button>
+            <h3>Describe tu necesidad</h3>
+            <label>Ciudad
+              <select name="city_selector" id="city-selector" style="width:100%; padding:8px; margin-bottom:8px;">
+                {cities.map(c => (
+                  <option value={c.slug} selected={c.slug === citySlug}>{c.name}</option>
+                ))}
+              </select>
+            </label>
+            <textarea name="description" id="desc-field" placeholder="Cuentanos que necesitas: tipo de empaque, cantidad, material, plazo..." rows="4" required style="width:100%; padding:8px; box-sizing:border-box;"></textarea>
+            <p class="field-error" id="desc-error">Describe tu necesidad (minimo 10 caracteres).</p>
+            <div style="display:flex; justify-content:flex-end; margin-top:8px;">
+              <button type="button" data-next-step="2" style="padding:10px 20px;">Continuar</button>
             </div>
           </div>
 
           <div data-step="2" hidden>
-            <h3>Paso 2: Servicios relacionados</h3>
-            <fieldset>
-              <legend>Este proyecto tambien puede necesitar:</legend>
-              {related.map((item) => (
-                <label style="display: block;">
-                  <input type="checkbox" name="requested_service_slugs" value={item.slug} />
-                  {item.label}
-                </label>
-              ))}
-            </fieldset>
-            <div style="display:flex; justify-content:space-between; gap:8px;">
+            <h3>Servicios relacionados</h3>
+            {related.length === 0 ? (
+              <p>No hay servicios relacionados disponibles.</p>
+            ) : (
+              <fieldset>
+                <legend>Este proyecto tambien puede necesitar:</legend>
+                {related.map((item) => (
+                  <label style="display: block; margin:4px 0;">
+                    <input type="checkbox" name="requested_service_slugs" value={item.slug} />
+                    {item.label}
+                  </label>
+                ))}
+              </fieldset>
+            )}
+            <div style="display:flex; justify-content:space-between; gap:8px; margin-top:12px;">
               <button type="button" data-prev-step="1">Volver</button>
-              <button type="button" data-next-step="3">Continuar</button>
+              <button type="button" data-next-step="3" style="padding:10px 20px;">Continuar</button>
             </div>
           </div>
 
           <div data-step="3" hidden>
-            <h3>Paso 3: Contacto y contexto</h3>
-            <input name="client_name" placeholder="Nombre" required />
-            <input name="client_email" type="email" placeholder="Email" required />
-            <input name="client_phone" placeholder="WhatsApp o telefono" required />
-            <select name="urgency">
+            <h3>Datos de contacto</h3>
+            <input name="client_name" id="name-field" placeholder="Tu nombre completo" required style="width:100%; padding:8px; box-sizing:border-box;" />
+            <p class="field-error" id="name-error">Ingresa tu nombre.</p>
+            <input name="client_email" id="email-field" type="email" placeholder="Email" required style="width:100%; padding:8px; box-sizing:border-box;" />
+            <p class="field-error" id="email-error">Ingresa un email valido.</p>
+            <input name="client_phone" id="phone-field" placeholder="WhatsApp o telefono" required style="width:100%; padding:8px; box-sizing:border-box;" />
+            <p class="field-error" id="phone-error">Ingresa un telefono de contacto.</p>
+            <select name="urgency" style="width:100%; padding:8px;">
               <option value="">Urgencia (opcional)</option>
               <option value="this_week">Esta semana</option>
               <option value="this_month">Este mes</option>
             </select>
-            <input name="budget_range" placeholder="Presupuesto aproximado (opcional)" />
+            <select name="budget_range" style="width:100%; padding:8px;">
+              <option value="">Presupuesto aproximado (opcional)</option>
+              <option value="0-500k">Menos de $500.000</option>
+              <option value="500k-2M">$500.000 - $2.000.000</option>
+              <option value="2M-5M">$2.000.000 - $5.000.000</option>
+              <option value="5M+">Mas de $5.000.000</option>
+            </select>
 
-            <label>
-              <input type="checkbox" name="consent" required />
-              Acepto ser contactado por proveedores relacionados con mi solicitud.
+            <label style="font-size:13px; display:flex; align-items:flex-start; gap:6px; margin-top:8px;">
+              <input type="checkbox" name="consent" id="consent-check" required />
+              <span>Acepto ser contactado por proveedores.</span>
             </label>
+            <p class="field-error" id="consent-error">Debes aceptar ser contactado.</p>
 
-            <div style="display:flex; justify-content:space-between; gap:8px;">
+            <div style="display:flex; justify-content:space-between; gap:8px; margin-top:12px;">
               <button type="button" data-prev-step="2">Volver</button>
-              <button type="submit">Enviar solicitud</button>
+              <button type="submit" style="padding:10px 24px; background:#0b5d1e; color:#fff; border:none; border-radius:6px; cursor:pointer; font-size:15px;">Enviar solicitud</button>
             </div>
           </div>
         </form>
@@ -145,62 +167,101 @@ const canonicalUrl = `${siteOrigin}/${citySlug}/${serviceSlug}`;
 
     <script is:inline>
       const form = document.querySelector('#lead-form');
-      if (form) {
-        // Prevent default form action (raw JSON), submit via JS instead
-        form.addEventListener('submit', async (event) => {
-          event.preventDefault();
-          const data = new FormData(form);
-          const body = new URLSearchParams();
-          for (const [key, val] of data.entries()) {
-            if (key === 'requested_service_slugs') {
-              body.append(key, String(val));
-            } else {
-              body.set(key, String(val));
-            }
-          }
+      const stepper = document.querySelector('#stepper');
+      const citySelector = document.querySelector('#city-selector');
+      const citySlugInput = document.querySelector('#city-slug-input');
+      let currentStep = 1;
 
-          try {
-            const res = await fetch(form.getAttribute('action') ?? '/api/leads', {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-              body: body.toString()
-            });
-            const json = await res.json();
-            if (json.ok && json.data) {
-              const code = json.data.lead_public_code ?? '';
-              const opps = json.data.opportunities_count ?? 0;
-              window.location.href = `/confirmacion?code=${encodeURIComponent(code)}&opportunities=${opps}`;
-            }
-          } catch {
-            // Fallback to direct form submission
-            form.submit();
-          }
-        });
-
-        const steps = Array.from(form.querySelectorAll('[data-step]'));
-        const showStep = (stepNumber) => {
-          for (const stepEl of steps) {
-            const isCurrent = stepEl.getAttribute('data-step') === String(stepNumber);
-            stepEl.hidden = !isCurrent;
-          }
-        };
-
-        form.addEventListener('click', (event) => {
-          const target = event.target;
-          if (!(target instanceof HTMLElement)) return;
-
-          const next = target.getAttribute('data-next-step');
-          if (next) {
-            showStep(Number(next));
-            return;
-          }
-
-          const prev = target.getAttribute('data-prev-step');
-          if (prev) {
-            showStep(Number(prev));
-          }
+      function updateStepper(step: number) {
+        if (!stepper) return;
+        stepper.querySelectorAll('.step-dot').forEach(d => {
+          const s = Number(d.getAttribute('data-step'));
+          d.className = 'step-dot' + (s === step ? ' active' : s < step ? ' done' : '');
         });
       }
+
+      function showStep(n: number) {
+        form?.querySelectorAll('[data-step]').forEach(el => {
+          el.hidden = el.getAttribute('data-step') !== String(n);
+        });
+        currentStep = n;
+        updateStepper(n);
+      }
+
+      function hideError(id: string) { const el = document.querySelector('#' + id); if (el) el.style.display = 'none'; }
+      function showError(id: string) { const el = document.querySelector('#' + id); if (el) el.style.display = 'block'; }
+
+      function validateStep1(): boolean {
+        const desc = (document.querySelector('#desc-field') as HTMLTextAreaElement)?.value?.trim() ?? '';
+        if (desc.length < 10) { showError('desc-error'); return false; }
+        hideError('desc-error'); return true;
+      }
+
+      function validateStep3(): boolean {
+        let ok = true;
+        const name = (document.querySelector('#name-field') as HTMLInputElement)?.value?.trim() ?? '';
+        const email = (document.querySelector('#email-field') as HTMLInputElement)?.value?.trim() ?? '';
+        const phone = (document.querySelector('#phone-field') as HTMLInputElement)?.value?.trim() ?? '';
+        const consent = (document.querySelector('#consent-check') as HTMLInputElement)?.checked ?? false;
+
+        if (!name) { showError('name-error'); ok = false; } else hideError('name-error');
+        if (!email || !email.includes('@')) { showError('email-error'); ok = false; } else hideError('email-error');
+        if (!phone) { showError('phone-error'); ok = false; } else hideError('phone-error');
+        if (!consent) { showError('consent-error'); ok = false; } else hideError('consent-error');
+        return ok;
+      }
+
+      citySelector?.addEventListener('change', () => {
+        if (citySlugInput) citySlugInput.value = citySelector.value;
+      });
+
+      form?.addEventListener('click', (e) => {
+        const target = e.target as HTMLElement;
+        if (!target) return;
+
+        const next = target.getAttribute('data-next-step');
+        if (next) {
+          if (currentStep === 1 && !validateStep1()) return;
+          showStep(Number(next));
+          return;
+        }
+
+        const prev = target.getAttribute('data-prev-step');
+        if (prev) { showStep(Number(prev)); }
+      });
+
+      form?.addEventListener('submit', async (event) => {
+        event.preventDefault();
+        if (!validateStep3()) return;
+
+        const btn = form.querySelector<HTMLButtonElement>('button[type="submit"]');
+        if (btn) { btn.disabled = true; btn.textContent = 'Enviando...'; }
+
+        const data = new FormData(form);
+        const body = new URLSearchParams();
+        for (const [key, val] of data.entries()) {
+          if (key === 'requested_service_slugs') body.append(key, String(val));
+          else body.set(key, String(val));
+        }
+
+        try {
+          const res = await fetch(form.getAttribute('action') ?? '/api/leads', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+            body: body.toString()
+          });
+          const json = await res.json();
+          if (json.ok && json.data) {
+            const code = json.data.lead_public_code ?? '';
+            const opps = json.data.opportunities_count ?? 0;
+            window.location.href = `/confirmacion?code=${encodeURIComponent(code)}&opportunities=${opps}`;
+          }
+        } catch {
+          if (btn) { btn.disabled = false; btn.textContent = 'Enviar solicitud'; }
+        }
+      });
+
+      updateStepper(1);
     </script>
   </body>
 </html>
