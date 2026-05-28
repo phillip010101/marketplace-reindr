@@ -640,6 +640,33 @@ providerRoute.put('/me/services', async (c) => {
     }
 
     const pool = getPool();
+
+    // Check plan limits
+    const planCheck = await pool.query<{ max_services: number | null; max_cities: number | null }>(
+      `SELECT pl.max_services, pl.max_cities
+       FROM providers p JOIN plans pl ON pl.id = COALESCE(p.plan_id, 'free')
+       WHERE p.id = $1`, [providerId]
+    );
+
+    if (planCheck.rowCount && planCheck.rowCount > 0) {
+      const { max_services, max_cities } = planCheck.rows[0];
+      if (max_services !== null && parsed.data.services.length > max_services) {
+        const failure = errorResponse(400, {
+          code: 'PLAN_LIMIT',
+          message: `Tu plan permite maximo ${max_services} servicios. Actualiza a Pro para ilimitados.`
+        });
+        return c.json(failure.body, failure.status);
+      }
+      const uniqueCities = new Set(parsed.data.cities).size;
+      if (max_cities !== null && uniqueCities > max_cities) {
+        const failure = errorResponse(400, {
+          code: 'PLAN_LIMIT',
+          message: `Tu plan permite maximo ${max_cities} ciudad. Actualiza a Pro para ilimitadas.`
+        });
+        return c.json(failure.body, failure.status);
+      }
+    }
+
     const client = await pool.connect();
 
     try {

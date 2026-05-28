@@ -1,0 +1,72 @@
+---
+export const prerender = true;
+const siteOrigin = Astro.site ? new URL(Astro.site).origin : 'https://apps.reindr.org';
+---
+
+<html lang="es">
+  <head>
+    <meta charset="utf-8" />
+    <title>Planes | Reindr Marketplace</title>
+    <meta name="description" content="Planes para proveedores: gratuito, pro mensual y pro anual con custom domain." />
+    <meta name="viewport" content="width=device-width" />
+  </head>
+  <body style="margin:0; background:#f2f4f7; font-family:system-ui,sans-serif;">
+    <main style="max-width:1000px; margin:0 auto; padding:48px 20px;">
+      <a href="/">&larr; Inicio</a>
+      <h1>Planes para proveedores</h1>
+      <p style="opacity:0.7; max-width:600px;">Elige el plan que mejor se adapte a tu negocio. Todos los planes incluyen perfil publico, recepcion de leads y panel de gestion.</p>
+
+      <div style="display:grid; grid-template-columns:repeat(auto-fit,minmax(280px,1fr)); gap:20px; margin-top:32px;">
+        <!-- Free -->
+        <div style="background:#fff; border:2px solid #dde2ea; border-radius:16px; padding:28px; text-align:center;">
+          <h2 style="margin:0;">Gratuito</h2>
+          <p style="font-size:36px; margin:16px 0 4px; font-weight:700;">$0</p>
+          <p style="opacity:0.5; margin:0 0 20px;">para siempre</p>
+          <ul style="text-align:left; padding-left:20px; line-height:2;">
+            <li>1 pagina de perfil</li>
+            <li>6 plantillas basicas</li>
+            <li>Hasta 3 servicios</li>
+            <li>1 ciudad</li>
+            <li>10 leads gratis/mes</li>
+            <li>Subdominio apps.reindr.org</li>
+          </ul>
+          <a href="/panel/registro" style="display:block; margin-top:20px; padding:12px; background:#0b5d1e; color:#fff; border-radius:8px; text-decoration:none; font-weight:600;">Comenzar gratis</a>
+        </div>
+
+        <!-- Pro Monthly -->
+        <div style="background:#fff; border:2px solid #0b5d1e; border-radius:16px; padding:28px; text-align:center; box-shadow:0 4px 20px rgba(0,0,0,0.1);">
+          <span style="background:#0b5d1e; color:#fff; padding:4px 12px; border-radius:12px; font-size:12px; font-weight:600;">MAS POPULAR</span>
+          <h2 style="margin:10px 0 0;">Pro Mensual</h2>
+          <p style="font-size:36px; margin:16px 0 4px; font-weight:700;">$49.900</p>
+          <p style="opacity:0.5; margin:0 0 20px;">/mes</p>
+          <ul style="text-align:left; padding-left:20px; line-height:2;">
+            <li>Todo lo del plan Gratuito</li>
+            <li>14 plantillas + personalizacion</li>
+            <li>Servicios ilimitados</li>
+            <li>Ciudades ilimitadas</li>
+            <li>Leads ilimitados</li>
+            <li>Custom domain (proximamente)</li>
+            <li>Sin branding Reindr</li>
+            <li>Soporte prioritario</li>
+          </ul>
+          <a href="/panel/plan" style="display:block; margin-top:20px; padding:12px; background:#0b5d1e; color:#fff; border-radius:8px; text-decoration:none; font-weight:600;">Actualizar a Pro</a>
+        </div>
+
+        <!-- Pro Yearly -->
+        <div style="background:#fff; border:2px solid #dde2ea; border-radius:16px; padding:28px; text-align:center;">
+          <h2 style="margin:0;">Pro Anual</h2>
+          <p style="font-size:36px; margin:16px 0 4px; font-weight:700;">$499.000</p>
+          <p style="opacity:0.5; margin:0 0 20px;">/ano (2 meses gratis)</p>
+          <ul style="text-align:left; padding-left:20px; line-height:2;">
+            <li>Todo lo de Pro Mensual</li>
+            <li>Custom domain incluido</li>
+            <li>Badge "Verificado"</li>
+            <li>Prioridad en busquedas</li>
+            <li>Ahorra $99.800 vs mensual</li>
+          </ul>
+          <a href="/panel/plan" style="display:block; margin-top:20px; padding:12px; background:#0b5d1e; color:#fff; border-radius:8px; text-decoration:none; font-weight:600;">Actualizar a Pro Anual</a>
+        </div>
+      </div>
+    </main>
+  </body>
+</html>

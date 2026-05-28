@@ -1,0 +1,98 @@
+---
+export const prerender = true;
+const siteOrigin = Astro.site ? new URL(Astro.site).origin : 'https://apps.reindr.org';
+---
+
+<html lang="es">
+  <head>
+    <meta charset="utf-8" />
+    <title>Mi plan | Reindr Marketplace</title>
+    <meta name="robots" content="noindex, nofollow" />
+    <meta name="viewport" content="width=device-width" />
+  </head>
+  <body style="margin:0; background:#f2f4f7; font-family:system-ui,sans-serif;">
+    <main style="max-width:800px; margin:0 auto; padding:48px 20px;">
+      <a href="/panel">&larr; Panel</a>
+      <h1>Mi plan</h1>
+
+      <div id="plan-container" style="background:#fff; border:1px solid #dde2ea; border-radius:16px; padding:24px; margin-top:16px;">
+        Cargando...
+      </div>
+
+      <div id="upgrade-options" style="margin-top:24px;"></div>
+    </main>
+
+    <script>
+      import { apiRequest, ensureProviderSession, providerAuthHeaders, formatCopAmount } from '../../../scripts/provider-panel-client';
+
+      type PlanInfo = {
+        plan_id: string; plan_name: string;
+        max_services: number | null; max_cities: number | null; max_leads_free: number;
+        custom_styles_allowed: boolean; custom_domain_allowed: boolean;
+        service_count: number; city_count: number;
+      };
+
+      type PlanOption = {
+        id: string; name: string; price_monthly: number; price_yearly: number;
+        max_services: number | null; max_cities: number | null;
+        custom_styles_allowed: boolean; custom_domain_allowed: boolean;
+        verified_badge: boolean;
+      };
+
+      async function load() {
+        const session = await ensureProviderSession({ redirectToLogin: true });
+        if (!session.ok) return;
+
+        const [planRes, plansRes] = await Promise.all([
+          apiRequest<PlanInfo>('/api/plans/me', { headers: { ...providerAuthHeaders() } }),
+          apiRequest<PlanOption[]>('/api/plans')
+        ]);
+
+        const container = document.querySelector('#plan-container');
+        const upgradeContainer = document.querySelector('#upgrade-options');
+
+        if (planRes.ok && planRes.data && container) {
+          const p = planRes.data;
+          container.innerHTML = `
+            <h2 style="margin-top:0;">Plan ${p.plan_name}</h2>
+            <div style="display:grid; grid-template-columns:repeat(auto-fit,minmax(150px,1fr)); gap:12px; margin-top:16px;">
+              <div><strong>Servicios</strong><br>${p.service_count} / ${p.max_services ?? 'Ilimitados'}</div>
+              <div><strong>Ciudades</strong><br>${p.city_count} / ${p.max_cities ?? 'Ilimitadas'}</div>
+              <div><strong>Leads gratis</strong><br>${p.max_leads_free ?? 'Ilimitados'}</div>
+              <div><strong>Custom styles</strong><br>${p.custom_styles_allowed ? 'Si' : 'No'}</div>
+              <div><strong>Custom domain</strong><br>${p.custom_domain_allowed ? 'Si' : 'No'}</div>
+            </div>`;
+
+          if (plansRes.ok && plansRes.data && upgradeContainer) {
+            const otherPlans = plansRes.data.filter(pl => pl.id !== p.plan_id && pl.id !== 'free');
+            if (otherPlans.length > 0) {
+              upgradeContainer.innerHTML = '<h3>Cambiar de plan</h3><div style="display:grid; gap:12px;">' +
+                otherPlans.map(pl => `
+                  <div style="background:#fff; border:1px solid #dde2ea; border-radius:12px; padding:16px;">
+                    <strong>${pl.name}</strong>
+                    ${pl.price_monthly > 0 ? `<span style="float:right; color:#0b5d1e;">${formatCopAmount(pl.price_monthly)}/mes</span>` : ''}
+                    ${pl.price_yearly > 0 ? `<span style="float:right; color:#0b5d1e;">${formatCopAmount(pl.price_yearly)}/ano</span>` : ''}
+                    <br>
+                    <button onclick="upgrade('${pl.id}')" style="margin-top:8px; padding:6px 16px; background:#0b5d1e; color:#fff; border:none; border-radius:6px; cursor:pointer;">Cambiar a ${pl.name}</button>
+                  </div>`).join('') + '</div>';
+            }
+          }
+        }
+      }
+
+      (window as any).upgrade = async function(planId: string) {
+        const session = await ensureProviderSession({ redirectToLogin: true });
+        if (!session.ok) return;
+        const result = await apiRequest('/api/plans/me', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', ...providerAuthHeaders() },
+          body: JSON.stringify({ plan_id: planId })
+        });
+        if (result.ok) { alert('Plan actualizado. Recarga la pagina.'); load(); }
+        else { alert('Error al actualizar plan.'); }
+      };
+
+      load();
+    </script>
+  </body>
+</html>
