@@ -29,9 +29,17 @@ const canonicalUrl = `${siteOrigin}/panel/registro`;
             <input type="email" name="email" required style="width:100%; padding:8px; border:1px solid #ddd; border-radius:6px; box-sizing:border-box;" />
           </label>
           <label>
-            Contrasena *
+            Contraseña *
             <input type="password" name="password" required minlength="8" style="width:100%; padding:8px; border:1px solid #ddd; border-radius:6px; box-sizing:border-box;" />
             <small style="opacity:0.6;">Minimo 8 caracteres.</small>
+          </label>
+          <label>
+            Repetir contraseña *
+            <input type="password" name="password_confirm" required minlength="8" style="width:100%; padding:8px; border:1px solid #ddd; border-radius:6px; box-sizing:border-box;" />
+          </label>
+          <label style="font-size:13px; display:flex; align-items:flex-start; gap:6px;">
+            <input type="checkbox" name="terms" required style="margin-top:3px;" />
+            <span>Acepto los <a href="/terminos" target="_blank" style="color:#0b5d1e;">terminos y condiciones</a> y la <a href="/privacidad" target="_blank" style="color:#0b5d1e;">politica de privacidad</a>.</span>
           </label>
           <button type="submit" style="padding:10px; background:#0b5d1e; color:#fff; border:none; border-radius:6px; cursor:pointer; font-size:15px;">Crear cuenta y entrar al panel</button>
         </form>
@@ -39,7 +47,7 @@ const canonicalUrl = `${siteOrigin}/panel/registro`;
         <p id="register-status" style="margin:12px 0 0; font-size:14px;"></p>
 
         <p style="margin-top:20px; font-size:14px; border-top:1px solid #eee; padding-top:16px;">
-          Ya tenes cuenta? <a href="/panel/login" style="color:#0b5d1e;">Inicia sesion</a>
+          ¿Ya tenes cuenta? <a href="/panel/login" style="color:#0b5d1e;">Inicia sesion</a>
         </p>
       </section>
     </main>
@@ -71,10 +79,18 @@ const canonicalUrl = `${siteOrigin}/panel/registro`;
         const formData = new FormData(form);
         const email = String(formData.get('email') ?? '').trim();
         const password = String(formData.get('password') ?? '');
+        const passwordConfirm = String(formData.get('password_confirm') ?? '');
         const display_name = String(formData.get('display_name') ?? '').trim();
 
         if (password.length < 8) {
-          setStatus('La contrasena debe tener al menos 8 caracteres.', 'error');
+          if (btn) { btn.disabled = false; btn.textContent = 'Crear cuenta y entrar al panel'; }
+          setStatus('La contraseña debe tener al menos 8 caracteres.', 'error');
+          return;
+        }
+
+        if (password !== passwordConfirm) {
+          if (btn) { btn.disabled = false; btn.textContent = 'Crear cuenta y entrar al panel'; }
+          setStatus('Las contraseñas no coinciden.', 'error');
           return;
         }
 
@@ -95,7 +111,7 @@ const canonicalUrl = `${siteOrigin}/panel/registro`;
 
         setStoredAccessToken(result.data?.access_token ?? '');
         setStatus('Cuenta creada. Redirigiendo al panel...', 'ok');
-        window.location.href = '/panel/perfil';
+        setTimeout(() => { window.location.href = '/panel'; }, 1500);
       });
     </script>
   </body>

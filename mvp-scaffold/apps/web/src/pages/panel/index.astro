@@ -33,7 +33,7 @@ const canonicalUrl = `${siteOrigin}/panel`;
 
       <section style="margin-top:20px; border:1px solid #ddd; border-radius:14px; padding:16px;">
         <h2 style="margin-top:0;">Sesion</h2>
-        <p style="margin-top:0;">Panel protegido por autenticacion provider (bearer token).</p>
+        <p style="margin-top:0;">Panel de gestion para tu negocio en Reindr Marketplace.</p>
         <p id="auth-status" style="margin:12px 0 0; font-size:14px;"></p>
       </section>
 
@@ -154,7 +154,9 @@ const canonicalUrl = `${siteOrigin}/panel`;
         display_name?: string;
         description?: string;
         phone?: string;
+        whatsapp?: string;
         services?: string[];
+        cities?: string[];
         template_id?: string;
       };
 
@@ -179,7 +181,7 @@ const canonicalUrl = `${siteOrigin}/panel`;
           { label: 'Nombre comercial', done: !!(p.display_name && p.display_name.length >= 2) },
           { label: 'Descripcion', done: !!(p.description && p.description.length >= 10) },
           { label: 'Telefono o WhatsApp', done: !!(p.phone || p.whatsapp) },
-          { label: 'Plantilla visual', done: !!(p.template_id && p.template_id !== 'craft-paper') },
+          { label: 'Plantilla visual', done: !!(p.template_id) },
           { label: 'Servicios ofrecidos', done: !!(p.services && p.services.length > 0) },
           { label: 'Ciudades de cobertura', done: !!(p.cities && p.cities.length > 0) }
         ];
