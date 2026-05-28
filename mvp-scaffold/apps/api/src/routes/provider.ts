@@ -32,13 +32,8 @@ const UpdateProviderProfileSchema = z.object({
   cover_url: z.string().url().max(500).optional(),
   instagram: z.string().max(120).optional(),
   facebook: z.string().max(200).optional(),
-  template_id: z
-    .string()
-    .trim()
-    .min(1)
-    .max(80)
-    .refine((value) => isProviderTemplateId(value), 'template_id no permitido')
-    .optional()
+  template_id: z.string().trim().min(1).max(80).refine((v) => isProviderTemplateId(v), 'template_id no permitido').optional(),
+  custom_styles: z.record(z.string(), z.string()).optional()
 });
 
 const CreateQuoteSchema = z.object({
@@ -66,6 +61,7 @@ type ProviderProfileRow = {
   service_slugs: string[] | null;
   city_slugs: string[] | null;
   template_id: string | null;
+  custom_styles: Record<string, string> | null;
 };
 type ProviderLeadListRow = {
   opportunity_id: string;
@@ -170,6 +166,7 @@ async function fetchProviderProfileByAccount(accountId: string): Promise<Provide
        p.instagram,
        p.facebook,
        p.template_id,
+       p.custom_styles,
        p.status,
        p.verified_at::text,
        COALESCE(
@@ -229,7 +226,8 @@ providerRoute.get('/me', async (c) => {
         status: profile.status,
         verified_at: profile.verified_at,
         services: profile.service_slugs ?? [],
-        cities: profile.city_slugs ?? []
+        cities: profile.city_slugs ?? [],
+        custom_styles: profile.custom_styles ?? {}
       }
     });
   } catch (error) {
@@ -285,8 +283,9 @@ providerRoute.patch('/me', async (c) => {
            instagram = COALESCE($8, instagram),
            facebook = COALESCE($9, facebook),
            template_id = COALESCE($10, template_id),
+           custom_styles = CASE WHEN $11::jsonb IS NOT NULL THEN $11::jsonb ELSE custom_styles END,
            updated_at = now()
-       WHERE account_id = $11`,
+       WHERE account_id = $12`,
       [
         cleanOptionalText(updates.display_name),
         cleanOptionalText(updates.description),
@@ -298,6 +297,7 @@ providerRoute.patch('/me', async (c) => {
         cleanOptionalText(updates.instagram),
         cleanOptionalText(updates.facebook),
         cleanOptionalText(updates.template_id),
+        updates.custom_styles ? JSON.stringify(updates.custom_styles) : null,
         actor.accountId
       ]
     );
@@ -329,7 +329,8 @@ providerRoute.patch('/me', async (c) => {
         status: profile.status,
         verified_at: profile.verified_at,
         services: profile.service_slugs ?? [],
-        cities: profile.city_slugs ?? []
+        cities: profile.city_slugs ?? [],
+        custom_styles: profile.custom_styles ?? {}
       }
     });
   } catch (error) {

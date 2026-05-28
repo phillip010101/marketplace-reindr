@@ -79,6 +79,14 @@ const canonicalUrl = `${siteOrigin}/panel/perfil`;
           </label>
           <div id="template-grid" style="display:grid; grid-template-columns:repeat(auto-fit,minmax(150px,1fr)); gap:10px; margin-top:4px;">
           </div>
+          <div style="margin-top:8px; display:flex; gap:6px; flex-wrap:wrap;" id="template-filters">
+            <button type="button" data-filter="all" style="padding:4px 10px; border:1px solid #ddd; border-radius:14px; background:#0b5d1e; color:#fff; cursor:pointer; font-size:12px;">Todos</button>
+            <button type="button" data-filter="calido" style="padding:4px 10px; border:1px solid #ddd; border-radius:14px; background:#fff; cursor:pointer; font-size:12px;">Calidos</button>
+            <button type="button" data-filter="moderno" style="padding:4px 10px; border:1px solid #ddd; border-radius:14px; background:#fff; cursor:pointer; font-size:12px;">Modernos</button>
+            <button type="button" data-filter="corporativo" style="padding:4px 10px; border:1px solid #ddd; border-radius:14px; background:#fff; cursor:pointer; font-size:12px;">Corporativos</button>
+            <button type="button" data-filter="creativo" style="padding:4px 10px; border:1px solid #ddd; border-radius:14px; background:#fff; cursor:pointer; font-size:12px;">Creativos</button>
+            <button type="button" data-filter="minimal" style="padding:4px 10px; border:1px solid #ddd; border-radius:14px; background:#fff; cursor:pointer; font-size:12px;">Minimal</button>
+          </div>
           <p id="template-desc" style="margin:8px 0 0; font-size:13px; opacity:0.7;"></p>
           <div style="display:flex; gap:10px; flex-wrap:wrap;">
             <button type="button" id="load-profile-btn">Recargar perfil</button>
@@ -150,10 +158,10 @@ const canonicalUrl = `${siteOrigin}/panel/perfil`;
       };
 
       type ProviderTemplate = {
-        id: string; name: string; description: string; tags: string[];
-        fontStack: string; bgStart: string; bgEnd: string;
-        textColor: string; accentColor: string;
-        cardBackground: string; borderColor: string;
+        id: string; name: string; description: string; tags: string[]; category: string;
+        fontStack: string; headingFont: string; bodyFont: string;
+        bgStart: string; bgEnd: string; textColor: string; accentColor: string;
+        cardBackground: string; borderColor: string; customizable: string[];
       };
 
       const form = document.querySelector<HTMLFormElement>('#provider-profile-form');
@@ -202,19 +210,25 @@ const canonicalUrl = `${siteOrigin}/panel/perfil`;
         }
       }
 
+      let activeFilter = 'all';
+
       function renderTemplateGrid() {
         const grid = document.querySelector('#template-grid');
         const input = document.querySelector<HTMLInputElement>('#template-id-input');
         if (!grid || !input) return;
 
-        grid.innerHTML = providerTemplates.map(t => {
+        const filtered = activeFilter === 'all'
+          ? providerTemplates
+          : providerTemplates.filter(t => t.category === activeFilter);
+
+        grid.innerHTML = filtered.map(t => {
           const isSelected = input.value === t.id;
           return `<button type="button" data-template="${t.id}"
             style="text-align:left; padding:10px; border:2px solid ${isSelected ? t.accentColor : '#ddd'}; border-radius:8px; background:linear-gradient(150deg,${t.bgStart},${t.bgEnd}); cursor:pointer; font-family:${t.fontStack}; color:${t.textColor};"
             title="${t.description}">
             <strong style="font-size:14px;">${t.name}</strong>
-            <p style="font-size:11px; margin:4px 0 0; opacity:0.7;">${t.description.slice(0, 60)}</p>
-            <span style="font-size:10px; opacity:0.5;">${t.tags.map(tg => '#'+tg).join(' ')}</span>
+            <p style="font-size:11px; margin:4px 0 0; opacity:0.7;">${t.description.slice(0, 55)}</p>
+            <span style="font-size:10px; opacity:0.5;">${t.tags.slice(0,2).map((tg: string) => '#'+tg).join(' ')}</span>
           </button>`;
         }).join('');
 
@@ -227,6 +241,17 @@ const canonicalUrl = `${siteOrigin}/panel/perfil`;
           });
         });
       }
+
+      document.querySelector('#template-filters')?.querySelectorAll('button').forEach(btn => {
+        btn.addEventListener('click', () => {
+          document.querySelectorAll('#template-filters button').forEach(b => {
+            b.style.background = '#fff'; b.style.color = '#333';
+          });
+          btn.style.background = '#0b5d1e'; btn.style.color = '#fff';
+          activeFilter = btn.dataset.filter ?? 'all';
+          renderTemplateGrid();
+        });
+      });
 
       function fillForm(profile: ProviderProfilePayload) {
         const set = (name: string, value: string | null | undefined) => {
