@@ -132,6 +132,16 @@ const canonicalUrl = `${siteOrigin}/panel/perfil`;
           </div>
         </article>
       </section>
+
+      <section style="margin-top:18px; border:1px solid #ddd; border-radius:14px; padding:16px;">
+        <h2 style="margin-top:0;">Personalizar plantilla</h2>
+        <p style="margin-top:0; font-size:13px; opacity:0.7;">Ajusta colores y tipografia de tu plantilla. Estos cambios se guardan por separado y no afectan la plantilla base.</p>
+        <div id="customizer-fields" style="display:grid; grid-template-columns:repeat(auto-fit,minmax(180px,1fr)); gap:10px; margin-bottom:12px;">
+        </div>
+        <button type="button" id="save-custom-styles-btn" style="padding:8px 16px; background:#0b5d1e; color:#fff; border:none; border-radius:6px; cursor:pointer;">Guardar personalizacion</button>
+        <button type="button" id="reset-custom-styles-btn" style="padding:8px 16px; background:#f0f0f0; border:1px solid #ddd; border-radius:6px; cursor:pointer; margin-left:8px;">Restaurar defaults</button>
+        <p id="custom-styles-status" style="font-size:13px; margin:6px 0 0;"></p>
+      </section>
     </main>
 
 
@@ -370,7 +380,130 @@ const canonicalUrl = `${siteOrigin}/panel/perfil`;
           setStatus('Perfil actualizado correctamente.', 'ok');
       });
 
-      // ── Services & Cities management ────────────────────────────────
+      // ── Custom styles editor ──────────────────────────────────────
+      const FONT_OPTIONS = [
+        { value: '"Segoe UI", system-ui, sans-serif', label: 'Sistema (Segoe UI)' },
+        { value: '"Georgia", "Times New Roman", serif', label: 'Serif (Georgia)' },
+        { value: '"Trebuchet MS", "Gill Sans", sans-serif', label: 'Art Deco (Trebuchet)' },
+        { value: '"Franklin Gothic Medium", "Arial Narrow", sans-serif', label: 'Bold Narrow (Franklin)' },
+        { value: '"Century Gothic", "Segoe UI", sans-serif', label: 'Clean (Century Gothic)' },
+        { value: '"Courier New", monospace', label: 'Mono (Courier)' },
+        { value: '"Helvetica Neue", "Arial", sans-serif', label: 'Swiss (Helvetica)' },
+        { value: '"Garamond", "Georgia", serif', label: 'Clasico (Garamond)' },
+        { value: '"Verdana", "Segoe UI", sans-serif', label: 'Legible (Verdana)' }
+      ];
+
+      let currentCustomStyles: Record<string, string> = {};
+      let currentTemplateId = '';
+
+      function renderCustomizer() {
+        const container = document.querySelector('#customizer-fields');
+        const template = providerTemplates.find(t => t.id === currentTemplateId);
+        if (!container || !template) { if (container) container.innerHTML = '<p style="opacity:0.5;">Selecciona una plantilla para personalizar.</p>'; return; }
+
+        const customizable = (template as any).customizable || ['accentColor', 'bgStart', 'bgEnd', 'textColor'];
+        const fields: string[] = [];
+
+        if (customizable.includes('accentColor')) fields.push('accentColor');
+        if (customizable.includes('bgStart')) fields.push('bgStart');
+        if (customizable.includes('bgEnd')) fields.push('bgEnd');
+        if (customizable.includes('textColor')) fields.push('textColor');
+        if (customizable.includes('headingFont')) fields.push('headingFont');
+        if (customizable.includes('bodyFont')) fields.push('bodyFont');
+
+        const labels: Record<string, string> = {
+          accentColor: 'Color de acento', bgStart: 'Fondo inicio', bgEnd: 'Fondo fin',
+          textColor: 'Color de texto', headingFont: 'Fuente de titulos', bodyFont: 'Fuente de texto'
+        };
+        const defaults: Record<string, string> = {
+          accentColor: template.accentColor, bgStart: template.bgStart, bgEnd: template.bgEnd,
+          textColor: template.textColor, headingFont: (template as any).headingFont || template.fontStack,
+          bodyFont: (template as any).bodyFont || template.fontStack
+        };
+
+        container.innerHTML = fields.map(f => {
+          const value = currentCustomStyles[f] || defaults[f] || '';
+          if (f.includes('Font')) {
+            const opts = FONT_OPTIONS.map(o => `<option value="${o.value}" ${o.value === value ? 'selected' : ''}>${o.label}</option>`).join('');
+            return `<label style="font-size:13px;">${labels[f]} <select data-custom="${f}" style="width:100%; padding:4px; border:1px solid #ddd; border-radius:4px;">${opts}</select></label>`;
+          }
+          return `<label style="font-size:13px;">${labels[f]} <input type="color" data-custom="${f}" value="${value}" style="width:100%; height:32px; border:1px solid #ddd; border-radius:4px; cursor:pointer;" /></label>`;
+        }).join('');
+
+        container.querySelectorAll('input, select').forEach(el => {
+          el.addEventListener('input', () => {
+            const key = el.dataset.custom;
+            const value = (el as HTMLInputElement|HTMLSelectElement).value;
+            if (key) {
+              currentCustomStyles[key] = value;
+              applyCustomStylesToPreview();
+            }
+          });
+        });
+      }
+
+      function applyCustomStylesToPreview() {
+        const card = document.querySelector<HTMLElement>('#template-preview-card');
+        if (!card) return;
+
+        const template = providerTemplates.find(t => t.id === currentTemplateId);
+        if (!template) return;
+
+        const hEl = card.querySelector('h3') as HTMLElement;
+        const pEl = card.querySelector('p') as HTMLElement;
+
+        card.style.background = `linear-gradient(150deg, ${currentCustomStyles.bgStart || template.bgStart}, ${currentCustomStyles.bgEnd || template.bgEnd})`;
+        card.style.color = currentCustomStyles.textColor || template.textColor;
+        card.style.borderColor = currentCustomStyles.accentColor || template.accentColor;
+        card.style.fontFamily = currentCustomStyles.bodyFont || (template as any).bodyFont || template.fontStack;
+        if (hEl) hEl.style.fontFamily = currentCustomStyles.headingFont || (template as any).headingFont || template.fontStack;
+        if (hEl) hEl.style.color = currentCustomStyles.accentColor || template.accentColor;
+      }
+
+      document.querySelector('#save-custom-styles-btn')?.addEventListener('click', async () => {
+        const session = await ensureProviderSession({ redirectToLogin: true });
+        if (!session.ok) return;
+        const status = document.querySelector('#custom-styles-status');
+        const result = await apiRequest('/api/provider/me', {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json', ...providerAuthHeaders() },
+          body: JSON.stringify({ custom_styles: currentCustomStyles })
+        });
+        if (status) {
+          status.textContent = result.ok ? 'Personalizacion guardada.' : 'Error al guardar.';
+          status.style.color = result.ok ? '#0b5d1e' : '#a40000';
+        }
+      });
+
+      document.querySelector('#reset-custom-styles-btn')?.addEventListener('click', () => {
+        currentCustomStyles = {};
+        renderCustomizer();
+        applyCustomStylesToPreview();
+        const input = document.querySelector<HTMLInputElement>('#template-id-input');
+        if (input) applyTemplatePreview(input.value);
+      });
+
+      async function loadCustomStyles() {
+        const session = await ensureProviderSession({ redirectToLogin: true });
+        if (!session.ok) return;
+        const result = await apiRequest<{ custom_styles: Record<string,string>; template_id: string }>('/api/provider/me', {
+          headers: { ...providerAuthHeaders() }
+        });
+        if (result.ok && result.data) {
+          currentCustomStyles = result.data.custom_styles ?? {};
+          currentTemplateId = result.data.template_id ?? '';
+          renderCustomizer();
+          applyCustomStylesToPreview();
+        }
+        const tidInput = document.querySelector<HTMLInputElement>('#template-id-input');
+        if (tidInput) {
+          tidInput.addEventListener('change', () => {
+            currentTemplateId = tidInput.value;
+            renderCustomizer();
+            applyCustomStylesToPreview();
+          });
+        }
+      }
       type ServiceItem = { id: string; slug: string; name: string; status: string };
       type LocationItem = { id: string; slug: string; name: string; type: string };
       let availableServices: ServiceItem[] = [];
@@ -465,8 +598,10 @@ const canonicalUrl = `${siteOrigin}/panel/perfil`;
 
       renderTemplateGrid();
       applyTemplatePreview(null);
+      renderTemplateGrid();
       loadProfile();
       loadServices();
+      loadCustomStyles();
     </script>
   </body>
 </html>
