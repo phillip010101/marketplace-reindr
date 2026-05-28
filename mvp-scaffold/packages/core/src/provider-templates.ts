@@ -9,6 +9,8 @@ export type ProviderTemplateId =
 export type ProviderTemplate = {
   id: ProviderTemplateId;
   name: string;
+  description: string;
+  tags: string[];
   fontStack: string;
   bgStart: string;
   bgEnd: string;
@@ -22,6 +24,8 @@ export const PROVIDER_TEMPLATES: ProviderTemplate[] = [
   {
     id: 'craft-paper',
     name: 'Craft Paper',
+    description: 'Tonos calidos de papel kraft. Ideal para productos artesanales y naturales.',
+    tags: ['calido', 'artesanal', 'natural'],
     fontStack: '"Trebuchet MS", "Gill Sans", "Segoe UI", sans-serif',
     bgStart: '#f7f2e8',
     bgEnd: '#e8dcc7',
@@ -33,6 +37,8 @@ export const PROVIDER_TEMPLATES: ProviderTemplate[] = [
   {
     id: 'urban-ink',
     name: 'Urban Ink',
+    description: 'Alto contraste, estilo editorial. Para marcas modernas y urbanas.',
+    tags: ['moderno', 'editorial', 'contraste'],
     fontStack: '"Franklin Gothic Medium", "Arial Narrow", "Segoe UI", sans-serif',
     bgStart: '#f0f3f7',
     bgEnd: '#d7e0ea',
@@ -44,6 +50,8 @@ export const PROVIDER_TEMPLATES: ProviderTemplate[] = [
   {
     id: 'clean-lab',
     name: 'Clean Lab',
+    description: 'Fresco, limpio, tonos verdes. Para servicios de salud, alimentos y bienestar.',
+    tags: ['fresco', 'limpio', 'saludable'],
     fontStack: '"Century Gothic", "Segoe UI", sans-serif',
     bgStart: '#f5fbf8',
     bgEnd: '#deefe8',
@@ -55,6 +63,8 @@ export const PROVIDER_TEMPLATES: ProviderTemplate[] = [
   {
     id: 'executive-grid',
     name: 'Executive Grid',
+    description: 'Sobrio, corporativo, escala de grises. Para servicios profesionales B2B.',
+    tags: ['corporativo', 'sobrio', 'profesional'],
     fontStack: '"Lucida Sans", "Segoe UI", sans-serif',
     bgStart: '#f6f6f6',
     bgEnd: '#e5e5e5',
@@ -66,6 +76,8 @@ export const PROVIDER_TEMPLATES: ProviderTemplate[] = [
   {
     id: 'studio-sand',
     name: 'Studio Sand',
+    description: 'Arena, tierra, calidez de estudio creativo. Para disenadores y creativos.',
+    tags: ['creativo', 'calido', 'diseno'],
     fontStack: '"Verdana", "Segoe UI", sans-serif',
     bgStart: '#fbf7ef',
     bgEnd: '#efe4d4',
@@ -77,6 +89,8 @@ export const PROVIDER_TEMPLATES: ProviderTemplate[] = [
   {
     id: 'ocean-board',
     name: 'Ocean Board',
+    description: 'Azules frescos, sensacion de confianza y tecnologia.',
+    tags: ['fresco', 'tecnologico', 'confianza'],
     fontStack: '"Tahoma", "Segoe UI", sans-serif',
     bgStart: '#eef6f8',
     bgEnd: '#d9e9ef',

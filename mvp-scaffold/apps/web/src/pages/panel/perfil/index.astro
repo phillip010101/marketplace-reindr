@@ -75,12 +75,11 @@ const canonicalUrl = `${siteOrigin}/panel/perfil`;
           <div id="logo-preview" style="margin-top:8px;"></div>
           <label>
             Plantilla publica
-            <select name="template_id" required>
-              {PROVIDER_TEMPLATES.map((template) => (
-                <option value={template.id}>{template.name}</option>
-              ))}
-            </select>
+            <input type="hidden" name="template_id" id="template-id-input" value="craft-paper" />
           </label>
+          <div id="template-grid" style="display:grid; grid-template-columns:repeat(auto-fit,minmax(150px,1fr)); gap:10px; margin-top:4px;">
+          </div>
+          <p id="template-desc" style="margin:8px 0 0; font-size:13px; opacity:0.7;"></p>
           <div style="display:flex; gap:10px; flex-wrap:wrap;">
             <button type="button" id="load-profile-btn">Recargar perfil</button>
             <button type="submit">Guardar cambios</button>
@@ -112,24 +111,21 @@ const canonicalUrl = `${siteOrigin}/panel/perfil`;
       </section>
 
       <section style="margin-top:18px; border:1px solid #ddd; border-radius:14px; padding:16px;">
-        <h2 style="margin-top:0;">Vista previa de plantilla</h2>
-        <p style="margin-top:0;">Previsualiza combinacion de fuente, color y fondo antes de guardar.</p>
+        <h2 style="margin-top:0;">Vista previa</h2>
         <article
           id="template-preview-card"
-          style="--provider-font: 'Segoe UI', sans-serif; --provider-bg-start:#f7f7f7; --provider-bg-end:#e8e8e8; --provider-text:#1f1f1f; --provider-accent:#2f2f2f; --provider-card-bg:rgba(255,255,255,0.85); --provider-border:#c9c9c9; border:1px solid var(--provider-border); border-radius:12px; padding:16px; background:linear-gradient(150deg,var(--provider-bg-start),var(--provider-bg-end)); color:var(--provider-text); font-family:var(--provider-font);"
+          style="font-family:'Segoe UI',sans-serif; border:1px solid #c9c9c9; border-radius:12px; padding:20px;"
         >
-          <p id="template-preview-name" style="margin:0; font-size:12px; text-transform:uppercase; letter-spacing:.08em;">Template</p>
-          <h3 style="margin:8px 0;">Nombre Comercial</h3>
-          <p style="margin:0 0 10px;">Descripcion breve de ejemplo para visualizar tono y contraste.</p>
-          <a href="#" style="color:var(--provider-accent);">Enlace de ejemplo</a>
-          <div style="margin-top:12px; background:var(--provider-card-bg); border:1px solid var(--provider-border); border-radius:10px; padding:10px;">
-            Tarjeta secundaria de contenido
+          <p id="template-preview-name" style="margin:0; font-size:12px; text-transform:uppercase; letter-spacing:.08em; opacity:0.5;">Template</p>
+          <h3 id="template-preview-title" style="margin:8px 0;">Nombre Comercial</h3>
+          <p id="template-preview-desc" style="margin:0 0 10px;">Descripcion breve de ejemplo para visualizar tono y contraste.</p>
+          <div style="margin-top:12px; background:rgba(255,255,255,0.85); border:1px solid #c9c9c9; border-radius:10px; padding:10px; font-size:14px;">
+            <strong>Servicios:</strong> <span id="template-preview-services">-</span>
           </div>
         </article>
       </section>
     </main>
 
-    <script id="provider-templates-json" type="application/json" is:inline>{JSON.stringify(PROVIDER_TEMPLATES)}</script>
 
     <script>
       import {
@@ -138,6 +134,7 @@ const canonicalUrl = `${siteOrigin}/panel/perfil`;
         ensureProviderSession,
         providerAuthHeaders
       } from '../../../scripts/provider-panel-client';
+      import { PROVIDER_TEMPLATES } from '../../../data/provider-templates';
 
       type ProviderProfilePayload = {
         id?: string;
@@ -153,26 +150,19 @@ const canonicalUrl = `${siteOrigin}/panel/perfil`;
       };
 
       type ProviderTemplate = {
-        id: string;
-        name: string;
-        fontStack: string;
-        bgStart: string;
-        bgEnd: string;
-        textColor: string;
-        accentColor: string;
-        cardBackground: string;
-        borderColor: string;
+        id: string; name: string; description: string; tags: string[];
+        fontStack: string; bgStart: string; bgEnd: string;
+        textColor: string; accentColor: string;
+        cardBackground: string; borderColor: string;
       };
 
       const form = document.querySelector<HTMLFormElement>('#provider-profile-form');
-      const templateSelect = form?.elements?.namedItem('template_id') as HTMLSelectElement | null;
       const loadButton = document.querySelector<HTMLButtonElement>('#load-profile-btn');
       const logoutButton = document.querySelector<HTMLButtonElement>('#logout-btn');
       const statusEl = document.querySelector<HTMLElement>('#profile-status');
       const templatePreviewCard = document.querySelector<HTMLElement>('#template-preview-card');
       const templatePreviewName = document.querySelector<HTMLElement>('#template-preview-name');
-      const templatesJson = document.querySelector<HTMLScriptElement>('#provider-templates-json');
-      const providerTemplates = JSON.parse(templatesJson?.textContent ?? '[]') as ProviderTemplate[];
+      const providerTemplates: ProviderTemplate[] = PROVIDER_TEMPLATES as unknown as ProviderTemplate[];
 
       function setStatus(message: string, tone: 'neutral' | 'error' | 'ok' = 'neutral') {
         if (!statusEl) return;
@@ -181,20 +171,61 @@ const canonicalUrl = `${siteOrigin}/panel/perfil`;
       }
 
       function applyTemplatePreview(templateId: string | null | undefined) {
-        if (!templatePreviewCard) return;
-        const selected =
-          providerTemplates.find((template) => template.id === templateId) ??
-          providerTemplates[0];
+        const card = document.querySelector<HTMLElement>('#template-preview-card');
+        const nameEl = document.querySelector<HTMLElement>('#template-preview-name');
+        const titleEl = document.querySelector<HTMLElement>('#template-preview-title');
+        const descEl = document.querySelector<HTMLElement>('#template-preview-desc');
+        const svcEl = document.querySelector<HTMLElement>('#template-preview-services');
+        const descLabel = document.querySelector<HTMLElement>('#template-desc');
+        if (!card) return;
+
+        const selected = providerTemplates.find((t) => t.id === templateId) ?? providerTemplates[0];
         if (!selected) return;
 
-        templatePreviewCard.style.setProperty('--provider-font', selected.fontStack);
-        templatePreviewCard.style.setProperty('--provider-bg-start', selected.bgStart);
-        templatePreviewCard.style.setProperty('--provider-bg-end', selected.bgEnd);
-        templatePreviewCard.style.setProperty('--provider-text', selected.textColor);
-        templatePreviewCard.style.setProperty('--provider-accent', selected.accentColor);
-        templatePreviewCard.style.setProperty('--provider-card-bg', selected.cardBackground);
-        templatePreviewCard.style.setProperty('--provider-border', selected.borderColor);
-        if (templatePreviewName) templatePreviewName.textContent = `Template: ${selected.name}`;
+        card.style.fontFamily = selected.fontStack;
+        card.style.background = `linear-gradient(150deg, ${selected.bgStart}, ${selected.bgEnd})`;
+        card.style.color = selected.textColor;
+        card.style.borderColor = selected.borderColor;
+        if (nameEl) nameEl.textContent = `Template: ${selected.name}`;
+        if (descLabel) descLabel.textContent = selected.description;
+
+        const displayName = (form?.elements?.namedItem('display_name') as HTMLInputElement)?.value?.trim();
+        const desc = (form?.elements?.namedItem('description') as HTMLTextAreaElement)?.value?.trim();
+        if (titleEl) titleEl.textContent = displayName || 'Nombre de tu negocio';
+        if (descEl) descEl.textContent = desc || 'Descripcion de ejemplo para visualizar tono y contraste.';
+        if (svcEl) {
+          const checked = Array.from(document.querySelectorAll<HTMLInputElement>('#services-checkboxes input:checked') ?? []).map(el => {
+            const label = el.closest('label')?.textContent?.trim() ?? el.value;
+            return label;
+          });
+          svcEl.textContent = checked.length > 0 ? checked.join(', ') : '-';
+        }
+      }
+
+      function renderTemplateGrid() {
+        const grid = document.querySelector('#template-grid');
+        const input = document.querySelector<HTMLInputElement>('#template-id-input');
+        if (!grid || !input) return;
+
+        grid.innerHTML = providerTemplates.map(t => {
+          const isSelected = input.value === t.id;
+          return `<button type="button" data-template="${t.id}"
+            style="text-align:left; padding:10px; border:2px solid ${isSelected ? t.accentColor : '#ddd'}; border-radius:8px; background:linear-gradient(150deg,${t.bgStart},${t.bgEnd}); cursor:pointer; font-family:${t.fontStack}; color:${t.textColor};"
+            title="${t.description}">
+            <strong style="font-size:14px;">${t.name}</strong>
+            <p style="font-size:11px; margin:4px 0 0; opacity:0.7;">${t.description.slice(0, 60)}</p>
+            <span style="font-size:10px; opacity:0.5;">${t.tags.map(tg => '#'+tg).join(' ')}</span>
+          </button>`;
+        }).join('');
+
+        grid.querySelectorAll('button').forEach(btn => {
+          btn.addEventListener('click', () => {
+            const tid = btn.dataset.template ?? '';
+            input.value = tid;
+            applyTemplatePreview(tid);
+            renderTemplateGrid();
+          });
+        });
       }
 
       function fillForm(profile: ProviderProfilePayload) {
@@ -213,6 +244,7 @@ const canonicalUrl = `${siteOrigin}/panel/perfil`;
         set('instagram', profile.instagram);
         set('facebook', profile.facebook);
         applyTemplatePreview(profile.template_id);
+        renderTemplateGrid();
         showLogoPreview(String(profile.logo_url ?? ''));
       }
 
@@ -254,8 +286,19 @@ const canonicalUrl = `${siteOrigin}/panel/perfil`;
       loadButton?.addEventListener('click', () => {
         loadProfile();
       });
-      templateSelect?.addEventListener('change', () => {
-        applyTemplatePreview(templateSelect.value);
+
+      // Update preview when profile fields change
+      form?.querySelectorAll('input, textarea').forEach(el => {
+        el.addEventListener('input', () => {
+          const tid = document.querySelector<HTMLInputElement>('#template-id-input')?.value;
+          applyTemplatePreview(tid);
+        });
+      });
+
+      // Update preview when services checkboxes change
+      document.querySelector('#services-checkboxes')?.addEventListener('change', () => {
+        const tid = document.querySelector<HTMLInputElement>('#template-id-input')?.value;
+        applyTemplatePreview(tid);
       });
 
       logoutButton?.addEventListener('click', () => {
@@ -281,7 +324,7 @@ const canonicalUrl = `${siteOrigin}/panel/perfil`;
           cover_url: String(formData.get('cover_url') ?? '').trim(),
           instagram: String(formData.get('instagram') ?? '').trim(),
           facebook: String(formData.get('facebook') ?? '').trim(),
-          template_id: String(formData.get('template_id') ?? '').trim()
+          template_id: (document.querySelector<HTMLInputElement>('#template-id-input')?.value ?? '').trim()
         };
 
         const result = await apiRequest('/api/provider/me', {
@@ -395,7 +438,8 @@ const canonicalUrl = `${siteOrigin}/panel/perfil`;
         renderCityCheckboxes();
       }
 
-      applyTemplatePreview(templateSelect?.value);
+      renderTemplateGrid();
+      applyTemplatePreview(null);
       loadProfile();
       loadServices();
     </script>
