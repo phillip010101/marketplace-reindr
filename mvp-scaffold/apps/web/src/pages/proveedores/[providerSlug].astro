@@ -17,6 +17,7 @@ type ProviderProfileData = {
   logo_url: string | null;
   cover_url: string | null;
   template_id: string;
+  custom_styles?: Record<string, string>;
   services: string[];
   city?: string;
   reviews?: { id: string; rating: number; title: string; body: string; status: string; created_at: string; author_label: string }[];
@@ -44,6 +45,17 @@ const template = provider
   ? resolveProviderTemplateWithFallback(provider.template_id)
   : resolveProviderTemplateWithFallback('craft-paper');
 
+const customStyles = provider?.custom_styles ?? {};
+
+const bodyStyle = [
+  providerTemplateInlineStyle(template),
+  customStyles.bgStart ? `background: linear-gradient(150deg, ${customStyles.bgStart}, ${customStyles.bgEnd || template.bgEnd}) !important;` : '',
+  customStyles.textColor ? `color: ${customStyles.textColor} !important;` : '',
+  customStyles.accentColor ? `--provider-accent: ${customStyles.accentColor};` : '',
+  customStyles.bodyFont ? `font-family: ${customStyles.bodyFont};` : '',
+  customStyles.headingFont ? `--provider-heading-font: ${customStyles.headingFont};` : '',
+].filter(Boolean).join(' ');
+
 const providerCity = provider?.city ?? 'bogota';
 
 function formatWaNumber(phone: string): string {
@@ -61,8 +73,12 @@ function formatWaNumber(phone: string): string {
     <meta name="description" content={provider?.description ?? 'Perfil de proveedor en Reindr Marketplace.'} />
     <link rel="canonical" href={canonicalUrl} />
     <meta name="viewport" content="width=device-width" />
+    <style is:inline>
+      {customStyles.headingFont ? `h1, h2, h3 { font-family: ${customStyles.headingFont} !important; }` : ''}
+      {customStyles.accentColor ? `h1, h2, h3, a { color: ${customStyles.accentColor} !important; }` : ''}
+    </style>
   </head>
-  <body style={providerTemplateInlineStyle(template)}>
+  <body style={bodyStyle}>
     <main
       data-provider-template={template.id}
       data-provider-slug={slug}

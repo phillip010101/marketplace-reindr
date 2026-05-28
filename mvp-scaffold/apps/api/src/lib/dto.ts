@@ -75,6 +75,7 @@ export function toPublicProviderProfile(input: PublicProviderCardInput) {
     cover_url: (input as any).cover_url ?? null,
     instagram: (input as any).instagram ?? null,
     facebook: (input as any).facebook ?? null,
+    custom_styles: (input as any).custom_styles ?? {},
     reviews_count: input.reviews_count ?? 0,
     rating_avg: input.rating_avg ?? null
   };

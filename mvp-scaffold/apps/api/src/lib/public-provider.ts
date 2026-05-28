@@ -31,7 +31,7 @@ type PublicProviderRow = {
   facebook: string | null;
   city_slug: string | null;
   services: string[] | null;
-  template_id: string | null;
+  custom_styles: Record<string, string> | null;
   reviews_count: string | number;
   rating_avg: string | number | null;
 };
@@ -57,6 +57,7 @@ function toPublicProviderRecord(row: PublicProviderRow): PublicProviderRecord {
     cover_url: row.cover_url ?? null,
     instagram: row.instagram ?? null,
     facebook: row.facebook ?? null,
+    custom_styles: row.custom_styles ?? {},
     reviews_count: Number(row.reviews_count ?? 0),
     rating_avg: row.rating_avg === null ? null : Number(row.rating_avg)
   } as any;
@@ -101,6 +102,7 @@ export async function resolvePublicProviderBySlug(slug: string): Promise<PublicP
           p.instagram,
           p.facebook,
           p.template_id,
+          p.custom_styles,
           MIN(loc.slug) AS city_slug,
           COALESCE(
             ARRAY_AGG(DISTINCT s.slug) FILTER (WHERE s.slug IS NOT NULL),
@@ -122,7 +124,7 @@ export async function resolvePublicProviderBySlug(slug: string): Promise<PublicP
           ON r.provider_id = p.id
         WHERE p.slug = $1
           AND p.status = 'active'
-        GROUP BY p.id, p.slug, p.display_name, p.description, p.phone, p.whatsapp, p.website_url, p.logo_url, p.cover_url, p.instagram, p.facebook
+        GROUP BY p.id, p.slug, p.display_name, p.description, p.phone, p.whatsapp, p.website_url, p.logo_url, p.cover_url, p.instagram, p.facebook, p.template_id, p.custom_styles
         LIMIT 1
       `,
       [normalizedSlug]
