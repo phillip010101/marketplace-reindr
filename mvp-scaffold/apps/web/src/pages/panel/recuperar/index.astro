@@ -1,0 +1,54 @@
+---
+export const prerender = true;
+const siteOrigin = Astro.site ? new URL(Astro.site).origin : 'https://apps.reindr.org';
+---
+
+<html lang="es">
+  <head>
+    <meta charset="utf-8" />
+    <title>Recuperar contrasena | Reindr Marketplace</title>
+    <meta name="robots" content="noindex, nofollow" />
+    <meta name="viewport" content="width=device-width" />
+  </head>
+  <body style="margin:0; background:#f2f4f7; font-family:system-ui,sans-serif;">
+    <main style="min-height:100vh; display:grid; place-items:center; padding:20px;">
+      <section style="width:min(420px,100%); background:#fff; border:1px solid #dde2ea; border-radius:14px; padding:24px;">
+        <h1 style="margin-top:0;">Recuperar contrasena</h1>
+        <p style="opacity:0.7;">Ingresa tu email y te enviaremos instrucciones para restablecer tu contrasena.</p>
+
+        <form id="recover-form" style="display:grid; gap:10px;">
+          <label>Email <input type="email" name="email" required style="width:100%; padding:8px; border:1px solid #ddd; border-radius:6px; box-sizing:border-box;" /></label>
+          <button type="submit" style="padding:10px; background:#0b5d1e; color:#fff; border:none; border-radius:6px; cursor:pointer;">Enviar instrucciones</button>
+        </form>
+        <p id="recover-status" style="margin:12px 0 0; font-size:14px;"></p>
+        <p style="margin-top:20px; font-size:14px; border-top:1px solid #eee; padding-top:16px;">
+          <a href="/panel/login" style="color:#0b5d1e;">Volver al inicio de sesion</a>
+        </p>
+      </section>
+    </main>
+
+    <script>
+      import { apiRequest } from '../../../scripts/provider-panel-client';
+
+      document.querySelector('#recover-form')?.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const btn = e.target.querySelector('button');
+        if (btn) { btn.disabled = true; btn.textContent = 'Enviando...'; }
+        const email = new FormData(e.target).get('email')?.toString()?.trim() ?? '';
+        const status = document.querySelector('#recover-status');
+
+        const result = await apiRequest('/api/auth/recover', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ email })
+        });
+
+        if (status) {
+          status.textContent = 'Si el email esta registrado, recibiras instrucciones en tu correo.';
+          status.style.color = '#0b5d1e';
+        }
+        if (btn) { btn.disabled = false; btn.textContent = 'Enviar instrucciones'; }
+      });
+    </script>
+  </body>
+</html>

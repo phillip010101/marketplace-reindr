@@ -1,0 +1,43 @@
+---
+export const prerender = true;
+const siteOrigin = Astro.site ? new URL(Astro.site).origin : 'https://apps.reindr.org';
+---
+
+<html lang="es">
+  <head>
+    <meta charset="utf-8" />
+    <title>Politica de privacidad | Reindr Marketplace</title>
+    <meta name="viewport" content="width=device-width" />
+  </head>
+  <body style="margin:0; background:#f2f4f7; font-family:system-ui,sans-serif;">
+    <main style="max-width:800px; margin:0 auto; padding:48px 20px; line-height:1.7;">
+      <a href="/">&larr; Inicio</a>
+      <h1>Politica de privacidad</h1>
+      <p>Ultima actualizacion: Mayo 2026</p>
+
+      <h2>1. Datos que recopilamos</h2>
+      <p>Recopilamos email, nombre comercial, telefono, WhatsApp, y datos de perfil que vos decidas publicar. No recopilamos datos financieros ni de tarjetas.</p>
+
+      <h2>2. Uso de los datos</h2>
+      <p>Tus datos se usan exclusivamente para:</p>
+      <ul>
+        <li>Crear y gestionar tu cuenta de proveedor</li>
+        <li>Conectarte con clientes que solicitan tus servicios</li>
+        <li>Enviarte notificaciones operativas (leads, facturacion)</li>
+        <li>Mejorar la plataforma con analitica anonimizada</li>
+      </ul>
+
+      <h2>3. Comparticion</h2>
+      <p>No vendemos ni compartimos tus datos personales con terceros. Los datos de contacto de tu negocio (telefono, WhatsApp, web) son publicos en tu perfil de proveedor para que los clientes te contacten.</p>
+
+      <h2>4. Almacenamiento</h2>
+      <p>Tus datos se almacenan en servidores seguros con acceso restringido. Mantenemos backups cifrados diariamente.</p>
+
+      <h2>5. Tus derechos</h2>
+      <p>Podes solicitar acceso, rectificacion o eliminacion de tus datos escribiendo a <a href="mailto:privacidad@reindr.org">privacidad@reindr.org</a>.</p>
+
+      <h2>6. Cookies</h2>
+      <p>Usamos cookies tecnicas necesarias para el funcionamiento del panel y la autenticacion. No usamos cookies de seguimiento publicitario.</p>
+    </main>
+  </body>
+</html>

@@ -43,6 +43,35 @@ export const authRoute = new Hono();
 
 // ── Register Provider ─────────────────────────────────────────────
 
+// ── Password Recovery ─────────────────────────────────────────────
+
+const RecoverSchema = z.object({
+  email: z.string().email()
+});
+
+authRoute.post('/recover', async (c) => {
+  const parsed = RecoverSchema.safeParse(await c.req.json());
+  if (!parsed.success) {
+    return c.json({ ok: true, data: { message: 'Si el email esta registrado, recibiras instrucciones.' } });
+  }
+
+  const pool = getPool();
+  const result = await pool.query<{ id: string }>(
+    `SELECT id FROM accounts WHERE email = $1 LIMIT 1`,
+    [parsed.data.email.trim().toLowerCase()]
+  );
+
+  if (result.rowCount && result.rowCount > 0) {
+    const { randomBytes } = await import('node:crypto');
+    const token = randomBytes(32).toString('hex');
+    console.log(`[recover] Password reset token for ${parsed.data.email}: ${token}`);
+  }
+
+  return c.json({ ok: true, data: { message: 'Si el email esta registrado, recibiras instrucciones.' } });
+});
+
+// ── Register Provider ─────────────────────────────────────────────
+
 authRoute.post('/register', async (c) => {
   try {
     const parsed = RegisterProviderSchema.safeParse(await c.req.json());

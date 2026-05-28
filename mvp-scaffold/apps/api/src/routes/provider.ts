@@ -745,6 +745,26 @@ providerRoute.get('/metrics', async (c) => {
       ? Math.round((Number(row.contacted_count ?? 0) + Number(row.quoted_count ?? 0) + Number(row.closed_count ?? 0)) / Number(row.total ?? 0) * 100)
       : 0;
 
+    const [scoreResult] = await Promise.all([
+      pool.query<{ reviews_avg: string; reviews_count: string }>(
+        `SELECT
+           COALESCE(AVG(rating) FILTER (WHERE status = 'approved'), 0)::text AS reviews_avg,
+           COUNT(*) FILTER (WHERE status = 'approved')::text AS reviews_count
+         FROM reviews WHERE provider_id = $1`,
+        [providerId]
+      )
+    ]);
+
+    const reviewsAvg = Number(scoreResult.rows[0]?.reviews_avg ?? 0);
+    const reviewsCount = Number(scoreResult.rows[0]?.reviews_count ?? 0);
+    const hasDescription = false;
+    const trustScore = Math.min(100, Math.round(
+      (responseRate * 0.4) +
+      (Math.min(reviewsAvg, 5) / 5 * 100 * 0.3) +
+      (Math.min(reviewsCount, 10) / 10 * 100 * 0.2) +
+      (hasDescription ? 10 : 0)
+    ));
+
     return c.json({
       ok: true,
       data: {
@@ -754,7 +774,10 @@ providerRoute.get('/metrics', async (c) => {
         quoted: Number(row.quoted_count ?? 0),
         closed: Number(row.closed_count ?? 0),
         response_rate: responseRate,
-        wallet_balance: Number(walletResult.rows[0]?.balance ?? 0)
+        wallet_balance: Number(walletResult.rows[0]?.balance ?? 0),
+        trust_score: trustScore,
+        reviews_avg: reviewsAvg,
+        reviews_count: reviewsCount
       }
     });
   } catch (error) {

@@ -78,6 +78,15 @@ try {
       ) : null}
     </main>
 
+    <style is:inline>
+      @media (max-width: 640px) {
+        main { padding: 24px 12px !important; }
+        h1 { font-size: 22px; }
+        .search-row { flex-direction: column; }
+        .search-row input { min-width: 0 !important; width: 100% !important; }
+      }
+    </style>
+
     <script id="service-data" type="application/json" is:inline>{JSON.stringify(services.map(s => ({ slug: s.slug, name: s.name })))}</script>
     <script is:inline>
       const searchForm = document.querySelector('#search-form');

@@ -1,0 +1,40 @@
+---
+export const prerender = true;
+const siteOrigin = Astro.site ? new URL(Astro.site).origin : 'https://apps.reindr.org';
+---
+
+<html lang="es">
+  <head>
+    <meta charset="utf-8" />
+    <title>Terminos y condiciones | Reindr Marketplace</title>
+    <meta name="viewport" content="width=device-width" />
+  </head>
+  <body style="margin:0; background:#f2f4f7; font-family:system-ui,sans-serif;">
+    <main style="max-width:800px; margin:0 auto; padding:48px 20px; line-height:1.7;">
+      <a href="/">&larr; Inicio</a>
+      <h1>Terminos y condiciones</h1>
+      <p>Ultima actualizacion: Mayo 2026</p>
+
+      <h2>1. Aceptacion</h2>
+      <p>Al registrarte como proveedor en Reindr Marketplace, aceptas estos terminos. Si no estas de acuerdo, no utilices la plataforma.</p>
+
+      <h2>2. Registro</h2>
+      <p>Debes proporcionar informacion veraz. Eres responsable de mantener la confidencialidad de tu cuenta y contrasena.</p>
+
+      <h2>3. Servicios ofrecidos</h2>
+      <p>Los proveedores son responsables de la veracidad de la informacion publicada en sus perfiles. Reindr no garantiza la calidad de los servicios prestados por terceros.</p>
+
+      <h2>4. Leads y cotizaciones</h2>
+      <p>Reindr conecta clientes con proveedores. No garantizamos cierres ni resultados comerciales. Los proveedores pagan por leads validos segun las reglas de facturacion vigentes.</p>
+
+      <h2>5. Limitacion de responsabilidad</h2>
+      <p>Reindr actua como intermediario. No somos parte de los acuerdos entre clientes y proveedores. No nos hacemos responsables por incumplimientos, danos o perjuicios derivados de servicios contratados a traves de la plataforma.</p>
+
+      <h2>6. Modificaciones</h2>
+      <p>Podemos actualizar estos terminos en cualquier momento. Los cambios se notificaran por email o mediante aviso en la plataforma.</p>
+
+      <h2>7. Contacto</h2>
+      <p>Para consultas legales: <a href="mailto:legal@reindr.org">legal@reindr.org</a></p>
+    </main>
+  </body>
+</html>
