@@ -1,0 +1,37 @@
+---
+export interface Props {
+  title: string;
+  description?: string;
+  canonicalUrl?: string;
+  noindex?: boolean;
+  bodyClass?: string;
+  bodyStyle?: string;
+}
+
+const {
+  title,
+  description = 'Marketplace local de servicios en Colombia.',
+  canonicalUrl,
+  noindex = false,
+  bodyClass = '',
+  bodyStyle = '',
+} = Astro.props;
+
+const siteOrigin = Astro.site ? new URL(Astro.site).origin : 'https://apps.reindr.org';
+---
+
+<!DOCTYPE html>
+<html lang="es">
+  <head>
+    <meta charset="utf-8" />
+    <title>{title} | Reindr Marketplace</title>
+    <meta name="description" content={description} />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    {canonicalUrl ? <link rel="canonical" href={canonicalUrl} /> : null}
+    {noindex ? <meta name="robots" content="noindex, nofollow" /> : null}
+    <link rel="stylesheet" href="/src/styles/tokens.css" />
+  </head>
+  <body class={bodyClass} style={bodyStyle || `margin:0; background:var(--color-bg); font-family:var(--font-sans); color:var(--color-text);`}>
+    <slot />
+  </body>
+</html>

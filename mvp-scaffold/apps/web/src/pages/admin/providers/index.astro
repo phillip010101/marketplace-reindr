@@ -21,6 +21,14 @@ const canonicalUrl = `${siteOrigin}/admin/providers`;
       th { opacity:0.6; }
       .badge { display:inline-block; padding:2px 8px; border-radius:10px; font-size:11px; }
       select,input,button { padding:6px 10px; border:1px solid #0f3460; border-radius:4px; background:#1a1a2e; color:#ccc; }
+      @media (max-width: 640px) {
+        main { padding: 16px 12px !important; }
+        header { flex-direction: column; }
+        nav { display: flex; flex-wrap: wrap; gap: 4px; font-size: 11px; }
+        nav a { margin-right: 6px; }
+        table { font-size: 11px !important; }
+        th, td { padding: 4px !important; }
+      }
     </style>
   </head>
   <body>

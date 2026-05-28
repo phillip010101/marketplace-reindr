@@ -22,6 +22,15 @@ const canonicalUrl = `${siteOrigin}/admin`;
       table { width:100%; border-collapse:collapse; margin-top:8px; }
       th, td { text-align:left; padding:10px; border-bottom:1px solid #0f3460; font-size:14px; }
       th { opacity:0.6; font-weight:600; }
+      @media (max-width: 640px) {
+        main { padding: 16px 12px !important; }
+        header { flex-direction: column; gap: 8px; }
+        nav { display: flex; flex-wrap: wrap; gap: 6px; font-size: 13px; }
+        nav a { margin-right: 8px; }
+        .grid-2col { grid-template-columns: 1fr !important; }
+        table { font-size: 11px !important; }
+        th, td { padding: 6px 4px !important; }
+      }
     </style>
   </head>
   <body>
@@ -57,7 +66,7 @@ const canonicalUrl = `${siteOrigin}/admin`;
         </div>
       </div>
 
-      <div style="display:grid; grid-template-columns:1fr 1fr; gap:16px;">
+      <div class="grid-2col" style="display:grid; grid-template-columns:1fr 1fr; gap:16px;">
         <div class="card">
           <h3 style="margin-top:0;">Leads por estado</h3>
           <table id="leads-by-status"><tbody></tbody></table>
