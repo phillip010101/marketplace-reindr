@@ -6,6 +6,7 @@ import { contentRoute } from './routes/content';
 import { leadsRoute } from './routes/leads';
 import { locationsRoute } from './routes/locations';
 import { plansRoute } from './routes/plans';
+import { postsRoute } from './routes/posts';
 import { providerRoute } from './routes/provider';
 import { providersRoute } from './routes/providers';
 import { servicesRoute } from './routes/services';
@@ -42,6 +43,7 @@ export function createApp(): Hono {
   app.route('/api/leads', leadsRoute);
   app.route('/api/locations', locationsRoute);
   app.route('/api/plans', plansRoute);
+  app.route('/api/posts', postsRoute);
   app.route('/api/provider', providerRoute);
   app.route('/api/providers', providersRoute);
   app.route('/api/services', servicesRoute);

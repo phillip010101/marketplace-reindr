@@ -1,0 +1,140 @@
+---
+export const prerender = true;
+---
+
+<html lang="es">
+  <head>
+    <meta charset="utf-8" />
+    <title>Blog | Admin Reindr</title>
+    <meta name="robots" content="noindex, nofollow" />
+    <meta name="viewport" content="width=device-width" />
+    <style>
+      body { margin:0; background:#1a1a2e; color:#e0e0e0; font-family:system-ui,sans-serif; }
+      nav a { color:#e94560; text-decoration:none; margin-right:16px; }
+      .card { background:#16213e; border:1px solid #0f3460; border-radius:12px; padding:16px; margin-bottom:16px; }
+      table { width:100%; border-collapse:collapse; }
+      th,td { text-align:left; padding:8px; border-bottom:1px solid #0f3460; font-size:13px; }
+      th { opacity:0.6; }
+      input,textarea,select,button { padding:6px 10px; border:1px solid #0f3460; border-radius:4px; background:#1a1a2e; color:#ccc; }
+      textarea { width:100%; box-sizing:border-box; font-family:inherit; }
+      .badge { display:inline-block; padding:2px 8px; border-radius:10px; font-size:11px; }
+    </style>
+  </head>
+  <body>
+    <main style="max-width:1100px; margin:0 auto; padding:32px 20px;">
+      <header style="display:flex; justify-content:space-between; flex-wrap:wrap; margin-bottom:24px;">
+        <h1 style="margin:0; color:#e94560;">Blog</h1>
+        <nav>
+          <a href="/admin">Dashboard</a> <a href="/admin/leads">Leads</a>
+          <a href="/admin/providers">Proveedores</a> <a href="/admin/contenido">Contenido</a>
+          <a href="/admin/blog">Blog</a>
+          <button id="logout-btn" style="background:#e94560;color:#fff;border:none;border-radius:6px;padding:6px 14px;cursor:pointer;">Salir</button>
+        </nav>
+      </header>
+
+      <div class="card">
+        <h3 style="margin-top:0;" id="editor-title">Nuevo post</h3>
+        <form id="post-form" style="display:grid; gap:8px; max-width:600px;">
+          <input name="id" type="hidden" id="post-id" />
+          <input name="title" placeholder="Titulo" required />
+          <input name="slug" placeholder="slug-del-post" required pattern="[a-z0-9-]+" />
+          <input name="description" placeholder="Descripcion corta (meta)" />
+          <select name="status"><option value="draft">Borrador</option><option value="published">Publicado</option><option value="archived">Archivado</option></select>
+          <input name="tags" placeholder="tags separados por coma" />
+          <textarea name="body" placeholder="Contenido del post..." rows="10"></textarea>
+          <div style="display:flex; gap:8px;">
+            <button type="submit" style="background:#4ecca3;color:#000;">Guardar</button>
+            <button type="button" id="new-btn" style="background:#0f3460;color:#fff;">Nuevo</button>
+          </div>
+        </form>
+        <p id="post-status" style="font-size:13px;"></p>
+      </div>
+
+      <div id="posts-container">Cargando...</div>
+    </main>
+
+    <script>
+      import { apiRequest, ensureAdminSession, clearStoredAccessToken, adminAuthHeaders, dateLabel, escapeHtml } from '../../../scripts/admin-panel-client';
+
+      type PostRow = { id:string; title:string; slug:string; description:string|null; body?:string; status:string; tags:string[]|null; published_at:string; created_at:string; updated_at:string };
+
+      document.querySelector('#logout-btn')?.addEventListener('click', () => { clearStoredAccessToken(); window.location.href='/admin/login'; });
+
+      function statusBadge(s:string) {
+        const m:Record<string,string> = { published:'#4ecca3', draft:'#ffc107', archived:'#666' };
+        return `<span class="badge" style="background:${m[s]||'#666'}; color:#000;">${s}</span>`;
+      }
+
+      function render(rows:PostRow[]) {
+        const c = document.querySelector('#posts-container'); if(!c) return;
+        c.innerHTML = !rows.length ? '<p>No hay posts.</p>' : `<table><thead><tr><th>Titulo</th><th>Slug</th><th>Estado</th><th>Tags</th><th>Fecha</th><th></th></tr></thead><tbody>
+        ${rows.map(r => `<tr>
+          <td><strong>${escapeHtml(r.title)}</strong></td><td>${escapeHtml(r.slug)}</td><td>${statusBadge(r.status)}</td>
+          <td><small>${(r.tags||[]).join(', ')}</small></td><td style="font-size:12px;">${dateLabel(r.created_at)}</td>
+          <td style="white-space:nowrap;">
+            <button onclick="editPost('${r.id}')" style="background:#0f3460;color:#fff;border:none;padding:4px 8px;border-radius:4px;cursor:pointer;">Editar</button>
+            <button onclick="delPost('${r.id}')" style="background:#e94560;color:#fff;border:none;padding:4px 8px;border-radius:4px;cursor:pointer;">Elim</button>
+          </td>
+        </tr>`).join('')}</tbody></table>`;
+      }
+
+      (window as any).editPost = async function(id:string) {
+        const s = await ensureAdminSession({redirectToLogin:true}); if(!s.ok) return;
+        const r = await apiRequest<PostRow[]>('/api/posts/admin/list', {headers:{...adminAuthHeaders()}});
+        if (!r.ok || !r.data) return;
+        const post = r.data.find(p => p.id === id);
+        if (!post) return;
+        (document.querySelector('#post-id') as HTMLInputElement).value = post.id;
+        (document.querySelector('[name="title"]') as HTMLInputElement).value = post.title;
+        (document.querySelector('[name="slug"]') as HTMLInputElement).value = post.slug;
+        (document.querySelector('[name="description"]') as HTMLInputElement).value = post.description ?? '';
+        (document.querySelector('[name="status"]') as HTMLSelectElement).value = post.status;
+        (document.querySelector('[name="tags"]') as HTMLInputElement).value = (post.tags||[]).join(', ');
+        (document.querySelector('[name="body"]') as HTMLTextAreaElement).value = post.body ?? '';
+        (document.querySelector('#editor-title') as HTMLElement).textContent = 'Editar post';
+      };
+
+      (window as any).delPost = async function(id:string) {
+        if (!confirm('Eliminar este post?')) return;
+        const s = await ensureAdminSession({redirectToLogin:true}); if(!s.ok) return;
+        await apiRequest(`/api/posts/admin/list/${id}`, {method:'DELETE', headers:{...adminAuthHeaders()}});
+        load();
+      };
+
+      document.querySelector('#new-btn')?.addEventListener('click', () => {
+        (document.querySelector('#post-id') as HTMLInputElement).value = '';
+        document.querySelectorAll('#post-form input, #post-form textarea, #post-form select').forEach(el => { if (el instanceof HTMLInputElement || el instanceof HTMLTextAreaElement) el.value = ''; });
+        (document.querySelector('[name="status"]') as HTMLSelectElement).value = 'draft';
+        (document.querySelector('#editor-title') as HTMLElement).textContent = 'Nuevo post';
+      });
+
+      document.querySelector('#post-form')?.addEventListener('submit', async e => {
+        e.preventDefault();
+        const s = await ensureAdminSession({redirectToLogin:true}); if(!s.ok) return;
+        const fd = new FormData(e.target as HTMLFormElement);
+        const id = fd.get('id')?.toString() ?? '';
+        const body: Record<string,unknown> = {
+          title: fd.get('title'), slug: fd.get('slug'), description: fd.get('description'),
+          status: fd.get('status'), tags: (fd.get('tags')?.toString()??'').split(',').map(t=>t.trim()).filter(Boolean),
+          body: fd.get('body')
+        };
+        const st = document.querySelector('#post-status');
+        const r = await apiRequest(`/api/posts/admin/list${id ? '/'+id : ''}`, {
+          method: id ? 'PUT' : 'POST',
+          headers: {...adminAuthHeaders(),'Content-Type':'application/json'},
+          body: JSON.stringify(body)
+        });
+        if (st) { st.textContent = r.ok ? (id?'Actualizado':'Creado') : 'Error'; st.style.color = r.ok?'#4ecca3':'#e94560'; }
+        if (r.ok) { (document.querySelector('#new-btn') as HTMLButtonElement)?.click(); load(); }
+      });
+
+      async function load() {
+        const s = await ensureAdminSession({redirectToLogin:true}); if(!s.ok) return;
+        const r = await apiRequest<PostRow[]>('/api/posts/admin/list', {headers:{...adminAuthHeaders()}});
+        if (r.ok && r.data) render(r.data);
+      }
+
+      load();
+    </script>
+  </body>
+</html>
