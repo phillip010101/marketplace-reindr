@@ -82,36 +82,36 @@ const canonicalUrl = `${siteOrigin}/panel/registro`;
         const passwordConfirm = String(formData.get('password_confirm') ?? '');
         const display_name = String(formData.get('display_name') ?? '').trim();
 
-        if (password.length < 8) {
-          if (btn) { btn.disabled = false; btn.textContent = 'Crear cuenta y entrar al panel'; }
-          setStatus('La contraseña debe tener al menos 8 caracteres.', 'error');
-          return;
+        function resetBtn() { if (btn) { btn.disabled = false; btn.textContent = 'Crear cuenta y entrar al panel'; } }
+
+        if (!display_name || display_name.length < 2) { resetBtn(); setStatus('Ingresa el nombre de tu negocio.', 'error'); return; }
+        if (!email || !email.includes('@')) { resetBtn(); setStatus('Ingresa un email valido.', 'error'); return; }
+        if (password.length < 8) { resetBtn(); setStatus('La contraseña debe tener al menos 8 caracteres.', 'error'); return; }
+        if (password !== passwordConfirm) { resetBtn(); setStatus('Las contraseñas no coinciden.', 'error'); return; }
+
+        try {
+          const result = await apiRequest<RegisterResponse>('/api/auth/register', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ email, password, display_name })
+          });
+
+          if (!result.ok) {
+            resetBtn();
+            const msg = result.error && typeof result.error === 'object' && 'message' in (result.error as any)
+              ? (result.error as any).message
+              : 'Error al crear la cuenta. Intenta de nuevo.';
+            setStatus(msg, 'error');
+            return;
+          }
+
+          setStoredAccessToken(result.data?.access_token ?? '');
+          setStatus('Cuenta creada. Redirigiendo...', 'ok');
+          window.location.href = '/panel';
+        } catch {
+          resetBtn();
+          setStatus('Error de conexion. Verifica tu internet.', 'error');
         }
-
-        if (password !== passwordConfirm) {
-          if (btn) { btn.disabled = false; btn.textContent = 'Crear cuenta y entrar al panel'; }
-          setStatus('Las contraseñas no coinciden.', 'error');
-          return;
-        }
-
-        const result = await apiRequest<RegisterResponse>('/api/auth/register', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ email, password, display_name })
-        });
-
-        if (!result.ok) {
-          if (btn) { btn.disabled = false; btn.textContent = 'Crear cuenta y entrar al panel'; }
-          const msg = result.error && typeof result.error === 'object' && 'message' in (result.error as any)
-            ? (result.error as any).message
-            : 'Error al crear la cuenta.';
-          setStatus(msg, 'error');
-          return;
-        }
-
-        setStoredAccessToken(result.data?.access_token ?? '');
-        setStatus('Cuenta creada. Redirigiendo al panel...', 'ok');
-        setTimeout(() => { window.location.href = '/panel'; }, 1500);
       });
     </script>
   </body>
