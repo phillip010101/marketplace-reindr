@@ -1524,3 +1524,62 @@ adminRoute.post('/disputes/:eventId/resolve', async (c) => {
     return c.json(failure.body, failure.status);
   }
 });
+
+// ── Content CMS ───────────────────────────────────────────────────
+
+adminRoute.get('/content/:key', async (c) => {
+  try {
+    requireAdminActor(c);
+    const key = c.req.param('key');
+    const pool = getPool();
+    const result = await pool.query<{ key: string; value: string; type: string }>(
+      `SELECT key, value, type FROM site_content WHERE key = $1`, [key]
+    );
+    if (result.rowCount === 0) {
+      const failure = errorResponse(404, { code: 'NOT_FOUND', message: 'Contenido no encontrado.' });
+      return c.json(failure.body, failure.status);
+    }
+    return c.json({ ok: true, data: result.rows[0] });
+  } catch (error) {
+    if (error instanceof ApiRequestError) { const f = errorResponse(error.status, error.payload); return c.json(f.body, f.status); }
+    const f = errorResponse(500, { code: 'INTERNAL_ERROR', message: 'No fue posible leer contenido.' });
+    return c.json(f.body, f.status);
+  }
+});
+
+adminRoute.put('/content/:key', async (c) => {
+  try {
+    const actor = requireAdminActor(c);
+    const key = c.req.param('key');
+    const body = await c.req.json();
+    const value = String(body?.value ?? '');
+    const pool = getPool();
+    await pool.query(
+      `INSERT INTO site_content (key, value, type, updated_at)
+       VALUES ($1, $2, 'text', now())
+       ON CONFLICT (key) DO UPDATE SET value = $2, updated_at = now()`,
+      [key, value]
+    );
+    await appendAdminEvent({ eventType: 'content_updated', actorAccountId: actor.accountId, payload: { key } });
+    return c.json({ ok: true, data: { key, value } });
+  } catch (error) {
+    if (error instanceof ApiRequestError) { const f = errorResponse(error.status, error.payload); return c.json(f.body, f.status); }
+    const f = errorResponse(500, { code: 'INTERNAL_ERROR', message: 'No fue posible guardar contenido.' });
+    return c.json(f.body, f.status);
+  }
+});
+
+adminRoute.get('/content', async (c) => {
+  try {
+    requireAdminActor(c);
+    const pool = getPool();
+    const result = await pool.query<{ key: string; value: string; type: string }>(
+      `SELECT key, value, type FROM site_content ORDER BY key ASC`
+    );
+    return c.json({ ok: true, data: result.rows });
+  } catch (error) {
+    if (error instanceof ApiRequestError) { const f = errorResponse(error.status, error.payload); return c.json(f.body, f.status); }
+    const f = errorResponse(500, { code: 'INTERNAL_ERROR', message: 'No fue posible listar contenido.' });
+    return c.json(f.body, f.status);
+  }
+});

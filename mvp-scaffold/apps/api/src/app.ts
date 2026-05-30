@@ -2,6 +2,7 @@ import { Hono } from 'hono';
 import { cors } from 'hono/cors';
 import { adminRoute } from './routes/admin';
 import { authRoute } from './routes/auth';
+import { contentRoute } from './routes/content';
 import { leadsRoute } from './routes/leads';
 import { locationsRoute } from './routes/locations';
 import { plansRoute } from './routes/plans';
@@ -37,6 +38,7 @@ export function createApp(): Hono {
   app.get('/health', (c) => c.json({ ok: true, service: 'reindr-marketplace-api' }));
 
   app.route('/api/auth', authRoute);
+  app.route('/api/content', contentRoute);
   app.route('/api/leads', leadsRoute);
   app.route('/api/locations', locationsRoute);
   app.route('/api/plans', plansRoute);
