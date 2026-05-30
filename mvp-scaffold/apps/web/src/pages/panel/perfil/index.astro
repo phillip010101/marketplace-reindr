@@ -145,6 +145,28 @@ const canonicalUrl = `${siteOrigin}/panel/perfil`;
     </main>
 
 
+    <script is:inline>
+      (async () => {
+        try {
+          const apiBase = window.location.origin.includes('localhost') ? 'http://localhost:8787' : 'https://apps.reindr.org';
+          const res = await fetch(apiBase + '/api/templates');
+          if (res.ok) {
+            const json = await res.json();
+            if (json.data && json.data.length > 0) {
+              window.__TEMPLATES_API__ = json.data.map((t: any) => ({
+                id: t.id, name: t.name, description: t.description,
+                tags: t.tags || [], category: t.category || 'moderno',
+                fontStack: t.font_stack, headingFont: t.heading_font, bodyFont: t.body_font,
+                bgStart: t.bg_start, bgEnd: t.bg_end, textColor: t.text_color,
+                accentColor: t.accent_color, cardBackground: t.card_background,
+                borderColor: t.border_color, customizable: t.customizable || []
+              }));
+            }
+          }
+        } catch {}
+      })();
+    </script>
+
     <script>
       import {
         apiRequest,

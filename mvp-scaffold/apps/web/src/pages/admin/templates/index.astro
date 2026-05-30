@@ -1,0 +1,79 @@
+---
+export const prerender = true;
+---
+
+<html lang="es">
+  <head>
+    <meta charset="utf-8" />
+    <title>Templates | Admin Reindr</title>
+    <meta name="robots" content="noindex, nofollow" />
+    <meta name="viewport" content="width=device-width" />
+    <style>
+      body { margin:0; background:#1a1a2e; color:#e0e0e0; font-family:system-ui,sans-serif; }
+      nav a { color:#e94560; text-decoration:none; margin-right:16px; }
+      .card { background:#16213e; border:1px solid #0f3460; border-radius:12px; padding:16px; margin-bottom:16px; }
+      table { width:100%; border-collapse:collapse; }
+      th,td { text-align:left; padding:8px; border-bottom:1px solid #0f3460; font-size:13px; }
+      th { opacity:0.6; }
+      input,select,button { padding:6px 10px; border:1px solid #0f3460; border-radius:4px; background:#1a1a2e; color:#ccc; }
+      .badge { display:inline-block; padding:2px 8px; border-radius:10px; font-size:11px; }
+    </style>
+  </head>
+  <body>
+    <main style="max-width:1100px; margin:0 auto; padding:32px 20px;">
+      <header style="display:flex; justify-content:space-between; flex-wrap:wrap; margin-bottom:24px;">
+        <h1 style="margin:0; color:#e94560;">Templates</h1>
+        <nav>
+          <a href="/admin">Dashboard</a> <a href="/admin/leads">Leads</a>
+          <a href="/admin/providers">Proveedores</a> <a href="/admin/contenido">Contenido</a>
+          <a href="/admin/blog">Blog</a> <a href="/admin/templates">Templates</a>
+          <button id="logout-btn" style="background:#e94560;color:#fff;border:none;border-radius:6px;padding:6px 14px;cursor:pointer;">Salir</button>
+        </nav>
+      </header>
+
+      <div id="templates-container">Cargando...</div>
+    </main>
+
+    <script>
+      import { apiRequest, ensureAdminSession, clearStoredAccessToken, adminAuthHeaders, escapeHtml } from '../../../scripts/admin-panel-client';
+
+      type TplRow = { id:string; name:string; description:string; tags:string[]; category:string; heading_font:string; body_font:string; font_stack:string; bg_start:string; bg_end:string; text_color:string; accent_color:string; card_background:string; border_color:string; customizable:string[]; active:boolean };
+
+      document.querySelector('#logout-btn')?.addEventListener('click', () => { clearStoredAccessToken(); window.location.href='/admin/login'; });
+
+      const catNames: Record<string,string> = { calido:'Calido', moderno:'Moderno', corporativo:'Corporativo', creativo:'Creativo', minimal:'Minimal' };
+
+      function render(rows:TplRow[]) {
+        const c = document.querySelector('#templates-container'); if(!c) return;
+        c.innerHTML = !rows.length ? '<p>No hay templates.</p>' : `<table><thead><tr><th>Nombre</th><th>Categoria</th><th>Preview</th><th>Activo</th><th></th></tr></thead><tbody>
+        ${rows.map(r => `<tr>
+          <td><strong>${escapeHtml(r.name)}</strong><br><small style="opacity:0.5;">${escapeHtml(r.description.slice(0,60))}</small></td>
+          <td><span class="badge" style="background:#0f3460;">${catNames[r.category]||r.category}</span></td>
+          <td>
+            <div style="display:flex; gap:4px;">
+              <span style="display:inline-block; width:20px; height:20px; border-radius:4px; background:${r.bg_start};" title="bg start"></span>
+              <span style="display:inline-block; width:20px; height:20px; border-radius:4px; background:${r.accent_color};" title="accent"></span>
+              <span style="display:inline-block; width:20px; height:20px; border-radius:4px; background:${r.text_color};" title="text"></span>
+            </div>
+          </td>
+          <td style="color:${r.active ? '#4ecca3' : '#e94560'};">${r.active ? 'Activo' : 'Inactivo'}</td>
+          <td><button onclick="toggleTpl('${r.id}',${r.active})" style="background:#0f3460;color:#fff;border:none;padding:4px 8px;border-radius:4px;cursor:pointer;">${r.active ? 'Desactivar' : 'Activar'}</button></td>
+        </tr>`).join('')}</tbody></table>`;
+      }
+
+      (window as any).toggleTpl = async function(id:string, active:boolean) {
+        const s = await ensureAdminSession({redirectToLogin:true}); if(!s.ok) return;
+        await apiRequest(`/api/templates/admin/list/${id}`, { method:'PUT', headers:{...adminAuthHeaders(),'Content-Type':'application/json'}, body: JSON.stringify({ active: !active }) });
+        load();
+      };
+
+      async function load() {
+        const s = await ensureAdminSession({redirectToLogin:true}); if(!s.ok) return;
+        const r = await apiRequest<TplRow[]>('/api/templates/admin/list', {headers:{...adminAuthHeaders()}});
+        if (r.ok && r.data) render(r.data);
+      }
+
+      load();
+    </script>
+  </body>
+</html>

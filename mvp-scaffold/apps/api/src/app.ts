@@ -11,6 +11,7 @@ import { providerRoute } from './routes/provider';
 import { providersRoute } from './routes/providers';
 import { servicesRoute } from './routes/services';
 import { setupRoute } from './routes/setup';
+import { templatesRoute } from './routes/templates';
 import { walletRoute } from './routes/wallet';
 
 function parseCorsOrigins(value: string | undefined): string[] {
@@ -47,6 +48,7 @@ export function createApp(): Hono {
   app.route('/api/provider', providerRoute);
   app.route('/api/providers', providersRoute);
   app.route('/api/services', servicesRoute);
+  app.route('/api/templates', templatesRoute);
   app.route('/api/admin', adminRoute);
   app.route('/api/setup', setupRoute);
   app.route('/api/provider/wallet', walletRoute);
