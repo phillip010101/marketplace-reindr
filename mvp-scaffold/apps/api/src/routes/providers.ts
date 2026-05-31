@@ -71,8 +71,12 @@ providersRoute.get('/', async (c) => {
           LEFT JOIN reviews r
             ON r.provider_id = p.id
           WHERE ${where}
-          GROUP BY p.id, p.slug, p.display_name, p.description
-          ORDER BY p.display_name ASC
+          GROUP BY p.id, p.slug, p.display_name, p.description, p.plan_id
+          ORDER BY
+            CASE WHEN COALESCE(p.plan_id, 'free') = 'pro_yearly' THEN 0
+                 WHEN COALESCE(p.plan_id, 'free') = 'pro_monthly' THEN 1
+                 ELSE 2 END,
+            p.display_name ASC
         `,
         values
       );

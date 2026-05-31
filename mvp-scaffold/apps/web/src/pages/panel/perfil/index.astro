@@ -120,7 +120,13 @@ const canonicalUrl = `${siteOrigin}/panel/perfil`;
       </section>
 
       <section style="margin-top:18px; border:1px solid #ddd; border-radius:14px; padding:16px;">
-        <h2 style="margin-top:0;">Vista previa</h2>
+        <div style="display:flex; justify-content:space-between; align-items:center;">
+          <h2 style="margin-top:0;">Vista previa</h2>
+          <div>
+            <button type="button" id="preview-desktop-btn" style="padding:4px 12px; border:1px solid #ddd; border-radius:4px; background:#0b5d1e; color:#fff; cursor:pointer; font-size:12px;">Desktop</button>
+            <button type="button" id="preview-mobile-btn" style="padding:4px 12px; border:1px solid #ddd; border-radius:4px; background:#fff; cursor:pointer; font-size:12px;">Mobile</button>
+          </div>
+        </div>
         <article
           id="template-preview-card"
           style="font-family:'Segoe UI',sans-serif; border:1px solid #c9c9c9; border-radius:12px; padding:20px;"
@@ -292,7 +298,22 @@ const canonicalUrl = `${siteOrigin}/panel/perfil`;
           });
           btn.style.background = '#0b5d1e'; btn.style.color = '#fff';
           activeFilter = btn.dataset.filter ?? 'all';
-          renderTemplateGrid();
+      document.querySelector('#preview-mobile-btn')?.addEventListener('click', function() {
+        const card = document.querySelector<HTMLElement>('#template-preview-card');
+        if (card) card.style.maxWidth = '375px';
+        (this as HTMLButtonElement).style.background = '#0b5d1e'; (this as HTMLButtonElement).style.color = '#fff';
+        const dbtn = document.querySelector('#preview-desktop-btn') as HTMLButtonElement;
+        if (dbtn) { dbtn.style.background = '#fff'; dbtn.style.color = '#333'; }
+      });
+      document.querySelector('#preview-desktop-btn')?.addEventListener('click', function() {
+        const card = document.querySelector<HTMLElement>('#template-preview-card');
+        if (card) card.style.maxWidth = '';
+        (this as HTMLButtonElement).style.background = '#0b5d1e'; (this as HTMLButtonElement).style.color = '#fff';
+        const mbtn = document.querySelector('#preview-mobile-btn') as HTMLButtonElement;
+        if (mbtn) { mbtn.style.background = '#fff'; mbtn.style.color = '#333'; }
+      });
+
+      renderTemplateGrid();
         });
       });
 

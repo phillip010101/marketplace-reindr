@@ -70,14 +70,20 @@ const canonicalUrl = `${siteOrigin}/${citySlug}/${serviceSlug}`;
 
       <section style="margin-top: 24px;">
         <h2>Proveedores disponibles</h2>
-        {providers.length === 0 ? (
+          {providers.length === 0 ? (
           <p>Aun no hay proveedores activos para este servicio en esta ciudad.</p>
         ) : (
-          <ul>
-            {providers.map((p) => (
-              <li><a href={`/proveedores/${p.slug}`}>{p.display_name}</a></li>
-            ))}
-          </ul>
+          <>
+            <p style="font-size:13px; opacity:0.6;">{providers.length} proveedor(es) encontrados</p>
+            <ul>
+              {providers.map((p) => (
+                <li>
+                  <a href={`/proveedores/${p.slug}`}>{p.display_name}</a>
+                  {p.description ? <p style="margin:4px 0; opacity:0.7; font-size:14px;">{p.description.slice(0, 120)}</p> : null}
+                </li>
+              ))}
+            </ul>
+          </>
         )}
       </section>
 
