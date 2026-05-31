@@ -162,6 +162,14 @@ async function findOpportunityMatches(
            AND l2.city_id = $1
            AND (l2.client_email = $3 OR l2.client_phone = $4)
            AND l2.created_at >= (now() - ($5::int * interval '1 day'))
+       )
+       AND (
+         p.plan_id IS NULL OR p.plan_id = 'pro_monthly' OR p.plan_id = 'pro_yearly'
+         OR (
+           SELECT COUNT(*) FROM lead_opportunities lo3
+           WHERE lo3.provider_id = ps.provider_id
+             AND lo3.assigned_at >= date_trunc('month', now())
+         ) < (SELECT COALESCE(pl.max_leads_free, 10) FROM plans pl WHERE pl.id = COALESCE(p.plan_id, 'free'))
        )`,
     [cityId, requestedServiceIds, input.clientEmail, input.clientPhone, DUPLICATE_WINDOW_DAYS]
   );

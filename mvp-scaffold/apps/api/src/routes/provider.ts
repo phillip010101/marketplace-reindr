@@ -990,6 +990,23 @@ providerRoute.post('/leads/:opportunityId/status', async (c) => {
         ]
       );
 
+      if (shouldMarkBillable) {
+        const existingCharge = await client.query(
+          `SELECT id FROM wallet_transactions WHERE lead_opportunity_id = $1 AND type = 'debit' LIMIT 1`,
+          [opportunityId]
+        );
+        if (existingCharge.rowCount === 0) {
+          const leadPrice = currentResult.rows[0].lead_price ?? 0;
+          if (leadPrice > 0) {
+            await client.query(
+              `INSERT INTO wallet_transactions (provider_id, type, amount, reason, lead_opportunity_id)
+               VALUES ($1, 'debit', $2, 'lead_charge', $3)`,
+              [providerId, leadPrice, opportunityId]
+            );
+          }
+        }
+      }
+
       await client.query('COMMIT');
       return c.json({
         ok: true,
@@ -1016,5 +1033,100 @@ providerRoute.post('/leads/:opportunityId/status', async (c) => {
       message: 'No fue posible actualizar el estado de oportunidad.'
     });
     return c.json(failure.body, failure.status);
+  }
+});
+
+// ── Portfolio ────────────────────────────────────────────────────
+
+providerRoute.get('/portfolio', async (c) => {
+  try {
+    const actor = requireProviderActor(c);
+    const providerId = await resolveProviderIdFromAccount(actor.accountId);
+    const pool = getPool();
+    const result = await pool.query(
+      `SELECT id::text, url, caption, sort_order FROM portfolio_images
+       WHERE provider_id = $1 ORDER BY sort_order ASC, created_at ASC`, [providerId]
+    );
+    return c.json({ ok: true, data: result.rows });
+  } catch (e) {
+    if (e instanceof ApiRequestError) { const f = errorResponse(e.status, e.payload); return c.json(f.body, f.status); }
+    const f = errorResponse(500, { code: 'INTERNAL_ERROR', message: 'No fue posible cargar portfolio.' });
+    return c.json(f.body, f.status);
+  }
+});
+
+providerRoute.post('/portfolio', async (c) => {
+  try {
+    const actor = requireProviderActor(c);
+    const providerId = await resolveProviderIdFromAccount(actor.accountId);
+    const body = await c.req.json();
+    const pool = getPool();
+    const result = await pool.query(
+      `INSERT INTO portfolio_images (provider_id, url, caption) VALUES ($1,$2,$3)
+       RETURNING id::text, url, caption`, [providerId, body.url ?? '', body.caption ?? null]
+    );
+    return c.json({ ok: true, data: result.rows[0] }, 201);
+  } catch (e) {
+    if (e instanceof ApiRequestError) { const f = errorResponse(e.status, e.payload); return c.json(f.body, f.status); }
+    const f = errorResponse(500, { code: 'INTERNAL_ERROR', message: 'No fue posible agregar imagen.' });
+    return c.json(f.body, f.status);
+  }
+});
+
+providerRoute.delete('/portfolio/:id', async (c) => {
+  try {
+    const actor = requireProviderActor(c);
+    const providerId = await resolveProviderIdFromAccount(actor.accountId);
+    await getPool().query(`DELETE FROM portfolio_images WHERE id::text=$1 AND provider_id=$2`, [c.req.param('id'), providerId]);
+    return c.json({ ok: true, data: { id: c.req.param('id') } });
+  } catch (e) {
+    if (e instanceof ApiRequestError) { const f = errorResponse(e.status, e.payload); return c.json(f.body, f.status); }
+    const f = errorResponse(500, { code: 'INTERNAL_ERROR', message: 'No fue posible eliminar imagen.' });
+    return c.json(f.body, f.status);
+  }
+});
+
+// ── Close Confirmation ─────────────────────────────────────────
+
+providerRoute.post('/leads/:opportunityId/close', async (c) => {
+  try {
+    const actor = requireProviderActor(c);
+    const providerId = await resolveProviderIdFromAccount(actor.accountId);
+    const opportunityId = c.req.param('opportunityId');
+    const body = await c.req.json();
+    const result_std = String(body?.result ?? '');
+
+    if (!['won', 'lost'].includes(result_std)) {
+      const f = errorResponse(400, { code: 'VALIDATION_ERROR', message: 'result debe ser won o lost.' });
+      return c.json(f.body, f.status);
+    }
+
+    const pool = getPool();
+    const client = await pool.connect();
+    try {
+      await client.query('BEGIN');
+      const opp = await client.query<{ lead_id: string; status: string }>(
+        `SELECT lead_id::text, status FROM lead_opportunities WHERE id::text=$1 AND provider_id=$2 LIMIT 1`,
+        [opportunityId, providerId]
+      );
+      if (opp.rowCount === 0) { await client.query('ROLLBACK'); const f = errorResponse(404, { code: 'NOT_FOUND', message: 'Oportunidad no encontrada.' }); return c.json(f.body, f.status); }
+
+      await client.query(
+        `UPDATE lead_opportunities SET status=$1, closed_at=now() WHERE id::text=$2`,
+        [result_std, opportunityId]
+      );
+      await client.query(
+        `INSERT INTO lead_events (lead_id, opportunity_id, actor_type, actor_id, event_type, payload)
+         VALUES ($1,$2,'provider',$3::uuid,'close_reported',$4::jsonb)`,
+        [opp.rows[0].lead_id, opportunityId, actor.accountId, JSON.stringify({ result: result_std })]
+      );
+      await client.query('COMMIT');
+      return c.json({ ok: true, data: { opportunity_id: opportunityId, result: result_std } });
+    } catch { await client.query('ROLLBACK'); throw new ApiRequestError(500, { code: 'INTERNAL_ERROR', message: 'No fue posible reportar cierre.' }); }
+    finally { client.release(); }
+  } catch (e) {
+    if (e instanceof ApiRequestError) { const f = errorResponse(e.status, e.payload); return c.json(f.body, f.status); }
+    const f = errorResponse(500, { code: 'INTERNAL_ERROR', message: 'No fue posible reportar cierre.' });
+    return c.json(f.body, f.status);
   }
 });

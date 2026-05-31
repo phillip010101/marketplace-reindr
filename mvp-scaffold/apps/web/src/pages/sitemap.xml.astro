@@ -1,23 +1,41 @@
 ---
 export const prerender = false;
-import { getCollection } from 'astro:content';
 
-const posts = await getCollection('posts');
 const siteOrigin = 'https://apps.reindr.org';
+const apiBase = import.meta.env.PUBLIC_API_BASE_URL ?? 'http://localhost:8787';
 
-const staticRoutes = ['/','/servicios','/publicaciones'];
-const serviceSlugs = ['cajas-personalizadas','troqueles','impresion','etiquetas','serigrafia-screen','diseno-empaque','fotografia-producto','landing-page','ecommerce'];
-const cityService = ['bogota/cajas-personalizadas','bogota/troqueles','bogota/impresion','bogota/etiquetas'];
-const providers = ['proveedores/cajas-acme','proveedores/troqueles-norte','proveedores/printlab-bogota'];
+const staticRoutes = ['/','/servicios','/publicaciones','/planes'];
+let serviceSlugs: string[] = [];
+let providerSlugs: string[] = [];
+let postSlugs: { slug: string; date: string }[] = [];
+
+try {
+  const [svcRes, provRes, postRes] = await Promise.all([
+    fetch(`${apiBase}/api/services`),
+    fetch(`${apiBase}/api/providers`),
+    fetch(`${apiBase}/api/posts`)
+  ]);
+  if (svcRes.ok) {
+    const json = await svcRes.json();
+    serviceSlugs = (json.data ?? []).map((s: any) => s.slug);
+  }
+  if (provRes.ok) {
+    const json = await provRes.json();
+    providerSlugs = (json.data ?? []).map((p: any) => p.slug);
+  }
+  if (postRes.ok) {
+    const json = await postRes.json();
+    postSlugs = (json.data ?? []).map((p: any) => ({ slug: p.slug, date: p.published_at || p.created_at }));
+  }
+} catch { /* hardcoded fallback */ }
 
 const urls = [
   ...staticRoutes.map(r => `<url><loc>${siteOrigin}${r}</loc><changefreq>weekly</changefreq><priority>1.0</priority></url>`),
   ...serviceSlugs.map(s => `<url><loc>${siteOrigin}/servicios/${s}</loc><changefreq>weekly</changefreq><priority>0.9</priority></url>`),
-  ...cityService.map(r => `<url><loc>${siteOrigin}/${r}</loc><changefreq>weekly</changefreq><priority>0.9</priority></url>`),
-  ...providers.map(r => `<url><loc>${siteOrigin}/${r}</loc><changefreq>daily</changefreq><priority>0.8</priority></url>`),
-  ...posts.map(p => `<url><loc>${siteOrigin}/publicaciones/${p.id}</loc><lastmod>${p.data.pubDate.toISOString().split('T')[0]}</lastmod><changefreq>monthly</changefreq><priority>0.7</priority></url>`)
+  ...serviceSlugs.map(s => `<url><loc>${siteOrigin}/bogota/${s}</loc><changefreq>weekly</changefreq><priority>0.9</priority></url>`),
+  ...providerSlugs.map(s => `<url><loc>${siteOrigin}/proveedores/${s}</loc><changefreq>daily</changefreq><priority>0.8</priority></url>`),
+  ...postSlugs.map(p => `<url><loc>${siteOrigin}/publicaciones/${p.slug}</loc><lastmod>${p.date ? new Date(p.date).toISOString().split('T')[0] : ''}</lastmod><changefreq>monthly</changefreq><priority>0.7</priority></url>`)
 ];
-
-const xml = `<?xml version="1.0" encoding="UTF-8"?><urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">${urls.join('')}</urlset>`;
 ---
-{xml}
+
+<?xml version="1.0" encoding="UTF-8"?><urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"><?xml version="1.0" encoding="UTF-8"?>{urls.join('')}</urlset>

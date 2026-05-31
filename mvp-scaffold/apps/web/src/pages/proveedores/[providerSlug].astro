@@ -77,6 +77,20 @@ function formatWaNumber(phone: string): string {
       {customStyles.headingFont ? `h1, h2, h3 { font-family: ${customStyles.headingFont} !important; }` : ''}
       {customStyles.accentColor ? `h1, h2, h3, a { color: ${customStyles.accentColor} !important; }` : ''}
     </style>
+    <script type="application/ld+json" is:inline>
+      {JSON.stringify({
+        "@context": "https://schema.org",
+        "@type": "LocalBusiness",
+        "name": provider?.display_name ?? '',
+        "description": provider?.description ?? '',
+        "url": canonicalUrl,
+        "telephone": provider?.phone ?? undefined,
+        "address": { "@type": "PostalAddress", "addressLocality": providerCity },
+        "aggregateRating": provider?.rating_avg ? {
+          "@type": "AggregateRating", "ratingValue": provider.rating_avg, "reviewCount": provider?.reviews_count ?? 0
+        } : undefined
+      })}
+    </script>
   </head>
   <body style={bodyStyle}>
     <main
