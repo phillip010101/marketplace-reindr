@@ -1,4 +1,4 @@
-const RAW_API_BASE = import.meta.env.PUBLIC_API_BASE_URL ?? 'http://localhost:8787';
+const RAW_API_BASE = typeof window !== 'undefined' ? '' : (import.meta.env.PUBLIC_API_BASE_URL ?? 'http://localhost:8787');
 export const API_BASE_URL = RAW_API_BASE.replace(/\/+$/, '');
 
 const TOKEN_STORAGE_KEY = 'reindr_admin_access_token';
