@@ -101,7 +101,11 @@ const canonicalUrl = `${siteOrigin}/panel/login`;
 
         if (result.data.actor.role !== 'provider') {
           if (btn) { btn.disabled = false; btn.textContent = 'Entrar al panel'; }
-          setStatus('Esta cuenta no tiene rol de proveedor.', 'error');
+          if (result.data.actor.role === 'admin') {
+            setStatus('Esta es una cuenta admin. Entra en /admin/login.', 'error');
+          } else {
+            setStatus('Esta cuenta no tiene rol de proveedor.', 'error');
+          }
           return;
         }
 
