@@ -32,6 +32,15 @@ const canonicalUrl = `${siteOrigin}/panel`;
       </header>
 
       <section style="margin-top:20px; border:1px solid #ddd; border-radius:14px; padding:16px;">
+        <h2 style="margin-top:0;">Tu pagina publica</h2>
+        <p style="margin-top:0;" id="public-url-container">
+          <a id="public-url-link" href="#" target="_blank" style="color:#0b5d1e; font-weight:600;">Cargando...</a>
+          <button id="copy-url-btn" type="button" style="margin-left:8px; padding:2px 10px; font-size:12px; border:1px solid #ddd; border-radius:4px; background:#f0f0f0; cursor:pointer;">Copiar</button>
+        </p>
+        <p style="margin-top:0;"><a href="/panel/perfil" style="color:#0b5d1e;">Editar mi pagina →</a></p>
+      </section>
+
+      <section style="margin-top:20px; border:1px solid #ddd; border-radius:14px; padding:16px;">
         <h2 style="margin-top:0;">Sesion</h2>
         <p style="margin-top:0;">Panel de gestion para tu negocio en Reindr Marketplace.</p>
         <p id="auth-status" style="margin:12px 0 0; font-size:14px;"></p>
@@ -252,6 +261,24 @@ const canonicalUrl = `${siteOrigin}/panel`;
         }
       });
 
+      async function loadPublicUrl() {
+        const session = await ensureProviderSession({ redirectToLogin: true });
+        if (!session.ok) return;
+        const result = await apiRequest<{ slug: string }>('/api/provider/me', { headers: { ...providerAuthHeaders() } });
+        if (result.ok && result.data) {
+          const url = `https://apps.reindr.org/proveedores/${result.data.slug}`;
+          const link = document.querySelector<HTMLAnchorElement>('#public-url-link');
+          if (link) { link.href = url; link.textContent = url; }
+          const copyBtn = document.querySelector('#copy-url-btn');
+          if (copyBtn) {
+            copyBtn.addEventListener('click', async () => {
+              try { await navigator.clipboard.writeText(url); copyBtn.textContent = 'Copiado!'; setTimeout(() => { copyBtn.textContent = 'Copiar'; }, 2000); }
+              catch { copyBtn.textContent = 'Error'; }
+            });
+          }
+        }
+      }
+
       logoutButton?.addEventListener('click', () => {
         clearStoredAccessToken();
         if (metricNew) metricNew.textContent = '-';
@@ -264,6 +291,7 @@ const canonicalUrl = `${siteOrigin}/panel`;
       refreshMetrics();
       refreshChecklist();
       refreshWallet();
+      loadPublicUrl();
     </script>
   </body>
 </html>

@@ -22,6 +22,7 @@ const canonicalUrl = `${siteOrigin}/panel/perfil`;
           <a href="/panel">Dashboard</a>
           <a href="/panel/perfil">Perfil</a>
           <a href="/panel/leads">Leads</a>
+          <a id="public-page-link" href="#" target="_blank" style="background:#0b5d1e; color:#fff; padding:6px 14px; border-radius:6px; text-decoration:none; font-size:13px; display:none;">Ver mi pagina ↗</a>
           <button id="logout-btn" type="button">Cerrar sesion</button>
         </nav>
       </header>
@@ -269,7 +270,17 @@ const canonicalUrl = `${siteOrigin}/panel/perfil`;
             const tid = btn.dataset.template ?? '';
             input.value = tid;
             applyTemplatePreview(tid);
-            renderTemplateGrid();
+      async function loadPublicUrl() {
+        const session = await ensureProviderSession({ redirectToLogin: true });
+        if (!session.ok) return;
+        const result = await apiRequest<{ slug: string }>('/api/provider/me', { headers: { ...providerAuthHeaders() } });
+        if (result.ok && result.data) {
+          const link = document.querySelector<HTMLAnchorElement>('#public-page-link');
+          if (link) { link.href = `https://apps.reindr.org/proveedores/${result.data.slug}`; link.style.display = 'inline'; }
+        }
+      }
+
+      renderTemplateGrid();
           });
         });
       }
@@ -624,6 +635,7 @@ const canonicalUrl = `${siteOrigin}/panel/perfil`;
       loadProfile();
       loadServices();
       loadCustomStyles();
+      loadPublicUrl();
     </script>
   </body>
 </html>
