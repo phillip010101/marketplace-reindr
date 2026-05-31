@@ -62,7 +62,9 @@ const canonicalUrl = `${siteOrigin}/${citySlug}/${serviceSlug}`;
   </head>
   <body>
     <main style="max-width: 960px; margin: 0 auto; padding: 48px 20px; font-family: system-ui, sans-serif;">
-      <a href="/servicios">&larr; Ver servicios</a>
+      <nav style="font-size:12px; opacity:0.6; margin-bottom:16px;">
+        <a href="/">Inicio</a> &rsaquo; <a href={`/${citySlug}`}>{citySlug}</a> &rsaquo; {serviceName}
+      </nav>
       <h1>{serviceName} en {citySlug}</h1>
       <p>{serviceItem?.description ?? 'Solicita cotizaciones y anade servicios complementarios para tu proyecto.'}</p>
 

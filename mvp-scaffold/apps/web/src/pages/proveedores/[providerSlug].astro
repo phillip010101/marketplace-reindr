@@ -23,21 +23,23 @@ type ProviderProfileData = {
   reviews?: { id: string; rating: number; title: string; body: string; status: string; created_at: string; author_label: string }[];
 };
 
+type PortfolioImage = { id: string; url: string; caption: string | null };
+
 const slug = Astro.params.providerSlug ?? '';
 
 let provider: ProviderProfileData | null = null;
+let portfolioImages: PortfolioImage[] = [];
 let errorMessage: string | null = null;
 
 try {
   const apiBase = import.meta.env.PUBLIC_API_BASE_URL ?? 'http://localhost:8787';
-  const res = await fetch(`${apiBase}/api/providers/${encodeURIComponent(slug)}`);
-  if (res.ok) {
-    const json = await res.json();
-    provider = json.data as ProviderProfileData;
-  }
-} catch {
-  errorMessage = 'Error al cargar datos del proveedor.';
-}
+  const [provRes, portRes] = await Promise.all([
+    fetch(`${apiBase}/api/providers/${encodeURIComponent(slug)}`),
+    fetch(`${apiBase}/api/providers/${encodeURIComponent(slug)}/portfolio`)
+  ]);
+  if (provRes.ok) { const json = await provRes.json(); provider = json.data as ProviderProfileData; }
+  if (portRes.ok) { const json = await portRes.json(); portfolioImages = (json.data ?? []) as PortfolioImage[]; }
+} catch { errorMessage = 'Error al cargar datos del proveedor.'; }
 
 const siteOrigin = Astro.site ? new URL(Astro.site).origin : 'https://apps.reindr.org';
 const canonicalUrl = `${siteOrigin}/proveedores/${slug}`;
@@ -119,6 +121,10 @@ function formatWaNumber(phone: string): string {
             <img src={provider.cover_url} alt="" style="width:100%; max-height:200px; object-fit:cover; border-radius:12px; margin:12px 0;" />
           ) : null}
 
+          {provider.cover_url ? (
+            <img src={provider.cover_url} alt="" style="width:100%; max-height:200px; object-fit:cover; border-radius:12px; margin:12px 0;" />
+          ) : null}
+
           {provider.website_url ? (
             <p><strong>Sitio web:</strong> <a href={provider.website_url} rel="noopener" target="_blank">{provider.website_url.replace(/^https?:\/\//,'')}</a></p>
           ) : null}
@@ -128,6 +134,10 @@ function formatWaNumber(phone: string): string {
           {provider.whatsapp ? (
             <p><strong>WhatsApp:</strong> <a href={`https://wa.me/${formatWaNumber(provider.whatsapp)}`} target="_blank" rel="noopener">Enviar mensaje por WhatsApp</a></p>
           ) : null}
+
+          <nav style="margin-top:8px; font-size:12px; opacity:0.6;">
+            <a href="/">Inicio</a> &rsaquo; <a href="/servicios">Servicios</a> &rsaquo; {provider.display_name}
+          </nav>
 
           <section style="margin-top: 24px; border: 1px solid var(--provider-border); border-radius: 12px; padding: 14px; background: var(--provider-card-bg);">
             <h2>Servicios</h2>
@@ -139,6 +149,20 @@ function formatWaNumber(phone: string): string {
               ))}
             </ul>
           </section>
+
+          {portfolioImages.length > 0 ? (
+            <section style="margin-top: 24px; border: 1px solid var(--provider-border); border-radius: 12px; padding: 14px; background: var(--provider-card-bg);">
+              <h2>Galeria de trabajos</h2>
+              <div style="display:grid; grid-template-columns:repeat(auto-fit,minmax(180px,1fr)); gap:10px;">
+                {portfolioImages.map((img) => (
+                  <div>
+                    <img src={img.url} alt={img.caption ?? ''} style="width:100%; height:140px; object-fit:cover; border-radius:8px;" loading="lazy" />
+                    {img.caption ? <p style="font-size:12px; margin:4px 0 0; opacity:0.7;">{img.caption}</p> : null}
+                  </div>
+                ))}
+              </div>
+            </section>
+          ) : null}
 
           <section style="margin-top: 24px; border: 1px solid var(--provider-border); border-radius: 12px; padding: 14px; background: var(--provider-card-bg);">
             <h2>Resenas verificadas</h2>

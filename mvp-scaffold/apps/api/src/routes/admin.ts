@@ -1583,3 +1583,28 @@ adminRoute.get('/content', async (c) => {
     return c.json(f.body, f.status);
   }
 });
+
+// ── Quotes list ───────────────────────────────────────────────────
+
+adminRoute.get('/quotes', async (c) => {
+  try {
+    requireAdminActor(c);
+    const pool = getPool();
+    const result = await pool.query(
+      `SELECT q.id::text, q.opportunity_id::text, q.amount, q.currency,
+         q.estimated_delivery_time, q.message, q.status, q.created_at,
+         p.display_name AS provider_name, p.slug AS provider_slug,
+         lo.status AS opportunity_status, l.public_code AS lead_code
+       FROM quotes q
+       JOIN lead_opportunities lo ON lo.id = q.opportunity_id
+       JOIN providers p ON p.id = lo.provider_id
+       JOIN leads l ON l.id = lo.lead_id
+       ORDER BY q.created_at DESC LIMIT 100`
+    );
+    return c.json({ ok: true, data: result.rows });
+  } catch (e) {
+    if (e instanceof ApiRequestError) { const f = errorResponse(e.status, e.payload); return c.json(f.body, f.status); }
+    const f = errorResponse(500, { code: 'INTERNAL_ERROR', message: 'No fue posible listar cotizaciones.' });
+    return c.json(f.body, f.status);
+  }
+});

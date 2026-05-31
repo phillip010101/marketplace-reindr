@@ -1,0 +1,34 @@
+---
+export const prerender = true;
+---
+
+<html lang="es">
+  <head><meta charset="utf-8" /><title>Planes | Admin Reindr</title><meta name="robots" content="noindex, nofollow" /><meta name="viewport" content="width=device-width" />
+    <style>body{margin:0;background:#1a1a2e;color:#e0e0e0;font-family:system-ui,sans-serif}nav a{color:#e94560;text-decoration:none;margin-right:16px}.card{background:#16213e;border:1px solid #0f3460;border-radius:12px;padding:16px;margin-bottom:16px}input,button{padding:6px 10px;border:1px solid #0f3460;border-radius:4px;background:#1a1a2e;color:#ccc}button{cursor:pointer}</style>
+  </head>
+  <body>
+    <main style="max-width:900px; margin:0 auto; padding:32px 20px;">
+      <header style="display:flex; justify-content:space-between; flex-wrap:wrap; margin-bottom:24px;">
+        <h1 style="margin:0; color:#e94560;">Planes</h1>
+        <nav><a href="/admin">Dashboard</a> <a href="/admin/leads">Leads</a> <a href="/admin/providers">Proveedores</a> <a href="/admin/contenido">Contenido</a> <a href="/admin/planes">Planes</a> <button id="logout-btn" style="background:#e94560;color:#fff;border:none;border-radius:6px;padding:6px 14px;cursor:pointer;">Salir</button></nav>
+      </header>
+      <div id="plans-container">Cargando...</div>
+    </main>
+    <script>
+      import { apiRequest, ensureAdminSession, clearStoredAccessToken, adminAuthHeaders, formatCopAmount, escapeHtml } from '../../../scripts/admin-panel-client';
+      type PlanRow = { id:string; name:string; price_monthly:number; price_yearly:number; max_services:number|null; max_cities:number|null; max_leads_free:number; custom_styles_allowed:boolean; custom_domain_allowed:boolean; remove_branding:boolean; verified_badge:boolean };
+      document.querySelector('#logout-btn')?.addEventListener('click',()=>{clearStoredAccessToken();window.location.href='/admin/login'});
+      function render(rows:PlanRow[]){const c=document.querySelector('#plans-container');if(!c)return;c.innerHTML=rows.map(r=>`<div class="card"><h3 style="margin-top:0">${escapeHtml(r.name)} <small>(${r.id})</small></h3><div style="display:grid; grid-template-columns:repeat(auto-fit,minmax(120px,1fr)); gap:8px; font-size:13px;">`+['price_monthly','price_yearly','max_services','max_cities','max_leads_free'].map(k=>`<label>${k}<br><input id="${r.id}-${k}" value="${r[k]??''}" style="width:100%;box-sizing:border-box" /></label>`).join('')+['custom_styles_allowed','custom_domain_allowed','remove_branding','verified_badge'].map(k=>`<label><input type="checkbox" id="${r.id}-${k}" ${r[k]?'checked':''} /> ${k}</label>`).join('')+`</div><button onclick="savePlan('${r.id}')" style="margin-top:8px;background:#4ecca3;color:#000;">Guardar</button></div>`).join('')}
+      (window as any).savePlan = async function(id:string) {
+        const s=await ensureAdminSession({redirectToLogin:true});if(!s.ok)return;
+        const body:Record<string,unknown>={};
+        for(const k of ['price_monthly','price_yearly','max_services','max_cities','max_leads_free']){const el=document.querySelector('#'+id+'-'+k) as HTMLInputElement;if(el)body[k]=Number(el.value)||0}
+        for(const k of ['custom_styles_allowed','custom_domain_allowed','remove_branding','verified_badge']){const el=document.querySelector('#'+id+'-'+k) as HTMLInputElement;if(el)body[k]=el.checked}
+        await apiRequest('/api/plans/admin/'+id,{method:'PUT',headers:{...adminAuthHeaders(),'Content-Type':'application/json'},body:JSON.stringify(body)});
+        load();
+      };
+      async function load(){const s=await ensureAdminSession({redirectToLogin:true});if(!s.ok)return;const r=await apiRequest<PlanRow[]>('/api/plans',{headers:{...adminAuthHeaders()}});if(r.ok&&r.data)render(r.data)}
+      load();
+    </script>
+  </body>
+</html>

@@ -1,0 +1,61 @@
+---
+export const prerender = false;
+
+type ServiceItem = { id: string; slug: string; name: string; description: string };
+type ProviderItem = { id: string; slug: string; display_name: string; description: string };
+
+const { city } = Astro.params;
+const citySlug = (city ?? 'bogota').toLowerCase();
+const apiBase = import.meta.env.PUBLIC_API_BASE_URL ?? 'http://localhost:8787';
+const siteOrigin = Astro.site ? new URL(Astro.site).origin : 'https://apps.reindr.org';
+
+let services: ServiceItem[] = [];
+let providers: ProviderItem[] = [];
+let cityName = citySlug.charAt(0).toUpperCase() + citySlug.slice(1);
+
+try {
+  const [svcRes, provRes] = await Promise.all([
+    fetch(`${apiBase}/api/services`),
+    fetch(`${apiBase}/api/providers?city=${encodeURIComponent(citySlug)}`)
+  ]);
+  if (svcRes.ok) { const json = await svcRes.json(); services = (json.data ?? []) as ServiceItem[]; }
+  if (provRes.ok) { const json = await provRes.json(); providers = (json.data ?? []) as ProviderItem[]; }
+} catch { /* fallback */ }
+---
+
+<html lang="es">
+  <head>
+    <meta charset="utf-8" />
+    <title>Servicios en {cityName} | Reindr Marketplace</title>
+    <meta name="description" content={`Encuentra proveedores de servicios en ${cityName}.`} />
+    <link rel="canonical" href={`${siteOrigin}/${citySlug}`} />
+    <meta name="viewport" content="width=device-width" />
+  </head>
+  <body>
+    <main style="max-width:960px; margin:0 auto; padding:48px 20px; font-family:system-ui,sans-serif;">
+      <nav style="font-size:12px; opacity:0.6; margin-bottom:16px;">
+        <a href="/">Inicio</a> &rsaquo; {cityName}
+      </nav>
+      <h1>Servicios en {cityName}</h1>
+
+      <section style="margin-top:24px;">
+        <h2>Servicios disponibles</h2>
+        <div style="display:grid; gap:12px; grid-template-columns:repeat(auto-fit,minmax(200px,1fr));">
+          {services.map(s => (
+            <a href={`/${citySlug}/${s.slug}`} style="border:1px solid #ddd; border-radius:12px; padding:16px; text-decoration:none; color:inherit;">
+              <strong>{s.name}</strong>
+              <p style="font-size:13px; opacity:0.7;">Ver proveedores</p>
+            </a>
+          ))}
+        </div>
+      </section>
+
+      {providers.length > 0 ? (
+        <section style="margin-top:32px;">
+          <h2>Proveedores activos</h2>
+          <ul>{providers.map(p => <li><a href={`/proveedores/${p.slug}`}>{p.display_name}</a></li>)}</ul>
+        </section>
+      ) : null}
+    </main>
+  </body>
+</html>

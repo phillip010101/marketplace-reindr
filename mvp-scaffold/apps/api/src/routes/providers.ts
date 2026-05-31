@@ -122,6 +122,24 @@ providersRoute.get('/', async (c) => {
   });
 });
 
+providersRoute.get('/:slug/portfolio', async (c) => {
+  try {
+    const slug = c.req.param('slug').trim().toLowerCase();
+    const pool = getPool();
+    const result = await pool.query(
+      `SELECT pi.id::text, pi.url, pi.caption
+       FROM portfolio_images pi
+       JOIN providers p ON p.id = pi.provider_id
+       WHERE p.slug = $1 AND p.status = 'active'
+       ORDER BY pi.sort_order ASC, pi.created_at ASC`,
+      [slug]
+    );
+    return c.json({ ok: true, data: result.rows });
+  } catch {
+    return c.json({ ok: true, data: [] });
+  }
+});
+
 providersRoute.get('/:slug', async (c) => {
   const slug = c.req.param('slug');
   const provider = await resolvePublicProviderBySlug(slug);
