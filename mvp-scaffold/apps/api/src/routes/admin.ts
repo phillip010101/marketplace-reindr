@@ -1608,3 +1608,33 @@ adminRoute.get('/quotes', async (c) => {
     return c.json(f.body, f.status);
   }
 });
+
+// ── Edit provider ──────────────────────────────────────────────────
+
+adminRoute.patch('/providers/:id', async (c) => {
+  try {
+    requireAdminActor(c);
+    const id = c.req.param('id');
+    const body = await c.req.json();
+    const pool = getPool();
+    const fields: string[] = [];
+    const values: any[] = [];
+    let idx = 1;
+
+    for (const f of ['display_name','description','phone','whatsapp','website_url','template_id']) {
+      if (body[f] !== undefined) { fields.push(`${f} = COALESCE($${idx}, ${f})`); values.push(body[f] || null); idx++; }
+    }
+    if (fields.length === 0) { const f = errorResponse(400,{code:'VALIDATION_ERROR',message:'No hay campos para actualizar.'}); return c.json(f.body,f.status); }
+
+    values.push(id); fields.push(`updated_at = now()`);
+    const result = await pool.query(
+      `UPDATE providers SET ${fields.join(', ')} WHERE id::text=$${idx} OR slug=$${idx} RETURNING id::text, display_name, slug`,
+      values
+    );
+    if (result.rowCount === 0) { const f = errorResponse(404,{code:'NOT_FOUND',message:'Proveedor no encontrado.'}); return c.json(f.body,f.status); }
+    return c.json({ ok: true, data: result.rows[0] });
+  } catch (e) {
+    if (e instanceof ApiRequestError) { const f = errorResponse(e.status,e.payload); return c.json(f.body,f.status); }
+    const f = errorResponse(500,{code:'INTERNAL_ERROR',message:'No fue posible editar.'}); return c.json(f.body,f.status);
+  }
+});

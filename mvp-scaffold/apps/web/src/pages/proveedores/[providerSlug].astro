@@ -18,6 +18,8 @@ type ProviderProfileData = {
   cover_url: string | null;
   template_id: string;
   custom_styles?: Record<string, string>;
+  verified_at?: string | null;
+  response_time_hours?: number | null;
   services: string[];
   city?: string;
   reviews?: { id: string; rating: number; title: string; body: string; status: string; created_at: string; author_label: string }[];
@@ -115,6 +117,9 @@ function formatWaNumber(phone: string): string {
           ) : null}
 
           <h1>{provider.display_name}</h1>
+          {provider.verified_at ? (
+            <span style="display:inline-block; background:#0b5d1e; color:#fff; padding:3px 12px; border-radius:12px; font-size:12px; font-weight:600; margin-bottom:8px;">✅ Verificado</span>
+          ) : null}
           <p>{provider.description}</p>
 
           {provider.cover_url ? (
@@ -133,6 +138,10 @@ function formatWaNumber(phone: string): string {
           ) : null}
           {provider.whatsapp ? (
             <p><strong>WhatsApp:</strong> <a href={`https://wa.me/${formatWaNumber(provider.whatsapp)}`} target="_blank" rel="noopener">Enviar mensaje por WhatsApp</a></p>
+          ) : null}
+
+          {provider.response_time_hours != null ? (
+            <p style="font-size:13px; opacity:0.7;">⏱ Responde en ~{provider.response_time_hours < 1 ? 'menos de 1 hora' : provider.response_time_hours.toFixed(0) + ' horas'}</p>
           ) : null}
 
           <nav style="margin-top:8px; font-size:12px; opacity:0.6;">

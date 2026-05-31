@@ -32,6 +32,8 @@ type PublicProviderRow = {
   city_slug: string | null;
   services: string[] | null;
   custom_styles: Record<string, string> | null;
+  verified_at: string | null;
+  response_time_hours: number | null;
   reviews_count: string | number;
   rating_avg: string | number | null;
 };
@@ -58,6 +60,8 @@ function toPublicProviderRecord(row: PublicProviderRow): PublicProviderRecord {
     instagram: row.instagram ?? null,
     facebook: row.facebook ?? null,
     custom_styles: row.custom_styles ?? {},
+    verified_at: row.verified_at ?? null,
+    response_time_hours: row.response_time_hours ?? null,
     reviews_count: Number(row.reviews_count ?? 0),
     rating_avg: row.rating_avg === null ? null : Number(row.rating_avg)
   } as any;
@@ -103,6 +107,13 @@ export async function resolvePublicProviderBySlug(slug: string): Promise<PublicP
           p.facebook,
           p.template_id,
           p.custom_styles,
+          p.verified_at,
+          COALESCE(
+            (SELECT AVG(EXTRACT(EPOCH FROM (lo2.viewed_at - lo2.assigned_at)) / 3600)
+             FROM lead_opportunities lo2
+             WHERE lo2.provider_id = p.id AND lo2.viewed_at IS NOT NULL AND lo2.assigned_at IS NOT NULL),
+            NULL
+          ) AS response_time_hours,
           MIN(loc.slug) AS city_slug,
           COALESCE(
             ARRAY_AGG(DISTINCT s.slug) FILTER (WHERE s.slug IS NOT NULL),
