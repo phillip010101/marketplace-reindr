@@ -1,112 +1,87 @@
 ---
+import BaseLayout from '../layouts/BaseLayout.astro';
 export const prerender = false;
 
-type ServiceItem = { id: string; slug: string; name: string; description: string; status: string };
+type PublicServiceItem = { id: string; slug: string; name: string; description: string; status: string };
 type ProviderItem = { id: string; slug: string; display_name: string; description: string; template_id: string };
 
 const apiBase = import.meta.env.PUBLIC_API_BASE_URL ?? 'http://localhost:8787';
 const siteOrigin = Astro.site ? new URL(Astro.site).origin : 'https://apps.reindr.org';
 
-let services: ServiceItem[] = [];
+let services: PublicServiceItem[] = [];
 let providers: ProviderItem[] = [];
+let heroTitle = 'Red de servicios conectados';
+let heroSubtitle = 'Encuentra proveedores y arma solicitudes multi-servicio';
 
 try {
-  const [svcRes, provRes] = await Promise.all([
+  const [svcRes, provRes, titleRes, subRes] = await Promise.all([
     fetch(`${apiBase}/api/services`),
-    fetch(`${apiBase}/api/providers?city=bogota`)
+    fetch(`${apiBase}/api/providers?city=bogota`),
+    fetch(`${apiBase}/api/content/home-hero-title`),
+    fetch(`${apiBase}/api/content/home-hero-subtitle`)
   ]);
-  if (svcRes.ok) {
-    const json = await svcRes.json();
-    services = (json.data ?? []).filter((s: ServiceItem) => s.status === 'active');
-  }
-  if (provRes.ok) {
-    const json = await provRes.json();
-    providers = (json.data ?? []).slice(0, 3) as ProviderItem[];
-  }
-} catch { /* static fallback */ }
+  if (svcRes.ok) { const json = await svcRes.json(); services = (json.data ?? []) as PublicServiceItem[]; }
+  if (provRes.ok) { const json = await provRes.json(); providers = (json.data ?? []).slice(0, 3) as ProviderItem[]; }
+  if (titleRes.ok) { const json = await titleRes.json(); if (json.data?.value) heroTitle = json.data.value; }
+  if (subRes.ok) { const json = await subRes.json(); if (json.data?.value) heroSubtitle = json.data.value; }
+} catch { /* fallback */ }
 ---
 
-<html lang="es">
-  <head>
-    <meta charset="utf-8" />
-    <title>Red de servicios conectados | Reindr Marketplace</title>
-    <meta name="description" content="Encuentra proveedores y solicita cotizaciones para servicios relacionados en tu ciudad." />
-    <link rel="canonical" href={`${siteOrigin}/`} />
-    <meta name="viewport" content="width=device-width" />
-  </head>
-  <body>
-    <main style="max-width: 960px; margin: 0 auto; padding: 48px 20px; font-family: system-ui, sans-serif;">
-      <section>
-        <p style="text-transform: uppercase; letter-spacing: .08em; font-size: 12px;">Marketplace local de servicios</p>
-        <h1>Encuentra proveedores y arma solicitudes multi-servicio</h1>
-        <p>Busca un servicio principal y anade servicios complementarios como diseno, troquel, impresion, etiquetas o ecommerce.</p>
+<BaseLayout title="Inicio" description={heroSubtitle} canonicalUrl={`${siteOrigin}/`}>
+  <main style="max-width:960px; margin:0 auto; padding:48px 20px;">
+    <section>
+      <p style="text-transform:uppercase; letter-spacing:.08em; font-size:12px; color:var(--color-text-muted);">Marketplace local de servicios</p>
+      <h1>{heroTitle}</h1>
+      <p style="font-size:var(--text-lg); color:var(--color-text-muted);">{heroSubtitle}</p>
 
-        <form id="search-form" style="display: flex; gap: 8px; flex-wrap: wrap; margin-top: 24px;">
-          <input name="q" id="search-input" placeholder="Que necesitas? Ej: cajas personalizadas" style="padding: 12px; min-width: 240px;" />
-          <button type="submit" id="search-btn" style="padding: 12px 16px;">Buscar</button>
-        </form>
-        <p style="margin-top:16px;">
-          <a href="/panel/registro" style="color:#0b5d1e; font-weight:600;">Ofrece tus servicios — Registra tu negocio</a>
-        </p>
-      </section>
+      <form id="search-form" style="display:flex; gap:8px; flex-wrap:wrap; margin-top:24px;">
+        <input class="input" id="search-input" placeholder="Que necesitas? Ej: cajas personalizadas" style="max-width:400px;" />
+        <button type="submit" class="btn btn-primary" id="search-btn">Buscar</button>
+      </form>
+      <p style="margin-top:16px;">
+        <a href="/panel/registro" class="btn btn-primary">Ofrece tus servicios — Registra tu negocio</a>
+      </p>
+    </section>
 
-      <section style="margin-top: 48px;">
-        <h2>Servicios disponibles</h2>
-        <p><a href="/servicios">Ver todos los servicios ({services.length})</a></p>
-        <div style="display: grid; gap: 12px; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));">
-          {services.slice(0, 6).map((service) => (
-            <a href={`/bogota/${service.slug}`} style="border: 1px solid #ddd; border-radius: 12px; padding: 16px; text-decoration: none; color: inherit;">
-              <strong>{service.name}</strong>
-              <p>Ver proveedores en Bogota</p>
+    <section style="margin-top:48px;">
+      <h2>Servicios disponibles</h2>
+      <p><a href="/servicios">Ver todos los servicios ({services.length})</a></p>
+      <div style="display:grid; gap:12px; grid-template-columns:repeat(auto-fit,minmax(180px,1fr));">
+        {services.slice(0, 6).map(s => (
+          <a href={`/bogota/${s.slug}`} class="card" style="text-decoration:none; color:inherit;">
+            <strong>{s.name}</strong>
+            <p style="font-size:var(--text-sm); color:var(--color-text-muted); margin:4px 0 0;">Ver proveedores en Bogota</p>
+          </a>
+        ))}
+      </div>
+    </section>
+
+    {providers.length > 0 ? (
+      <section style="margin-top:48px;">
+        <h2>Proveedores destacados</h2>
+        <div style="display:grid; gap:12px; grid-template-columns:repeat(auto-fit,minmax(240px,1fr));">
+          {providers.map(p => (
+            <a href={`/proveedores/${p.slug}`} class="card" style="text-decoration:none; color:inherit;">
+              <strong>{p.display_name}</strong>
+              <p style="font-size:var(--text-sm); color:var(--color-text-muted);">{p.description?.slice(0, 100)}</p>
             </a>
           ))}
         </div>
       </section>
+    ) : null}
+  </main>
 
-      {providers.length > 0 ? (
-        <section style="margin-top: 48px;">
-          <h2>Proveedores destacados</h2>
-          <div style="display: grid; gap: 12px; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));">
-            {providers.map((p) => (
-              <a href={`/proveedores/${p.slug}`} style="border: 1px solid #ddd; border-radius: 12px; padding: 16px; text-decoration: none; color: inherit;">
-                <strong>{p.display_name}</strong>
-                <p style="font-size:14px; opacity:0.7;">{p.description?.slice(0, 100)}</p>
-              </a>
-            ))}
-          </div>
-        </section>
-      ) : null}
-    </main>
-
-    <style is:inline>
-      @media (max-width: 640px) {
-        main { padding: 24px 12px !important; }
-        h1 { font-size: 22px; }
-        .search-row { flex-direction: column; }
-        .search-row input { min-width: 0 !important; width: 100% !important; }
+  <script id="service-data" type="application/json">{JSON.stringify(services.map(s => ({ slug: s.slug, name: s.name })))}</script>
+  <script is:inline>
+    document.querySelector('#search-form')?.addEventListener('submit', e => {
+      e.preventDefault();
+      const q = (document.querySelector('#search-input') as HTMLInputElement)?.value?.trim().toLowerCase() ?? '';
+      if (!q) return;
+      const data = JSON.parse(document.querySelector('#service-data')?.textContent ?? '[]');
+      for (const s of data) {
+        if (s.slug.includes(q) || s.name.toLowerCase().includes(q)) { window.location.href = '/bogota/' + s.slug; return; }
       }
-    </style>
-
-    <script id="service-data" type="application/json" is:inline>{JSON.stringify(services.map(s => ({ slug: s.slug, name: s.name })))}</script>
-    <script is:inline>
-      const searchForm = document.querySelector('#search-form');
-      const searchInput = document.querySelector('#search-input');
-
-      const serviceData = JSON.parse(document.querySelector('#service-data')?.textContent ?? '[]');
-
-      searchForm?.addEventListener('submit', (e) => {
-        e.preventDefault();
-        const q = searchInput?.value?.trim().toLowerCase() ?? '';
-        if (!q) return;
-
-        for (const s of serviceData) {
-          if (s.slug.includes(q) || s.name.toLowerCase().includes(q)) {
-            window.location.href = '/bogota/' + s.slug;
-            return;
-          }
-        }
-        window.location.href = '/servicios';
-      });
-    </script>
-  </body>
-</html>
+      window.location.href = '/servicios';
+    });
+  </script>
+</BaseLayout>

@@ -4,19 +4,9 @@ export interface Props {
   description?: string;
   canonicalUrl?: string;
   noindex?: boolean;
-  bodyClass?: string;
-  bodyStyle?: string;
 }
 
-const {
-  title,
-  description = 'Marketplace local de servicios en Colombia.',
-  canonicalUrl,
-  noindex = false,
-  bodyClass = '',
-  bodyStyle = '',
-} = Astro.props;
-
+const { title, description, canonicalUrl, noindex = false } = Astro.props;
 const siteOrigin = Astro.site ? new URL(Astro.site).origin : 'https://apps.reindr.org';
 ---
 
@@ -25,13 +15,35 @@ const siteOrigin = Astro.site ? new URL(Astro.site).origin : 'https://apps.reind
   <head>
     <meta charset="utf-8" />
     <title>{title} | Reindr Marketplace</title>
-    <meta name="description" content={description} />
+    <meta name="description" content={description ?? 'Marketplace local de servicios en Colombia.'} />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     {canonicalUrl ? <link rel="canonical" href={canonicalUrl} /> : null}
     {noindex ? <meta name="robots" content="noindex, nofollow" /> : null}
+    <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='80' font-size='80'>🏪</text></svg>" />
     <link rel="stylesheet" href="/src/styles/tokens.css" />
   </head>
-  <body class={bodyClass} style={bodyStyle || `margin:0; background:var(--color-bg); font-family:var(--font-sans); color:var(--color-text);`}>
+  <body style="margin:0; background:var(--color-bg);">
+    <header style="background:var(--color-bg-white); border-bottom:1px solid var(--color-border); padding:12px 20px;">
+      <div style="max-width:var(--max-width-wide); margin:0 auto; display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:12px;">
+        <a href="/" style="font-weight:700; font-size:var(--text-lg); color:var(--color-brand); text-decoration:none;">Reindr</a>
+        <nav style="display:flex; gap:var(--space-md); flex-wrap:wrap; font-size:var(--text-sm);">
+          <a href="/servicios">Servicios</a>
+          <a href="/publicaciones">Blog</a>
+          <a href="/planes">Planes</a>
+          <a href="/panel/login" style="color:var(--color-brand); font-weight:600;">Panel</a>
+        </nav>
+      </div>
+    </header>
     <slot />
+    <footer style="margin-top:var(--space-2xl); padding:var(--space-xl) 20px; background:var(--color-bg-white); border-top:1px solid var(--color-border); font-size:var(--text-sm); color:var(--color-text-muted);">
+      <div style="max-width:var(--max-width-wide); margin:0 auto; display:flex; justify-content:space-between; flex-wrap:wrap; gap:var(--space-md);">
+        <div>© 2026 Reindr Marketplace</div>
+        <div style="display:flex; gap:var(--space-md);">
+          <a href="/terminos" style="color:inherit;">Terminos</a>
+          <a href="/privacidad" style="color:inherit;">Privacidad</a>
+          <a href="mailto:contacto@reindr.org" style="color:inherit;">Contacto</a>
+        </div>
+      </div>
+    </footer>
   </body>
 </html>

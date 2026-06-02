@@ -1,9 +1,14 @@
 :root {
+  /* Brand */
   --color-brand: #0b5d1e;
   --color-brand-light: #f0faf3;
+  --color-brand-hover: #094a18;
   --color-error: #a40000;
+  --color-error-bg: #fff5f5;
   --color-success: #0b5d1e;
   --color-warning: #ffc107;
+
+  /* Neutral */
   --color-bg: #f2f4f7;
   --color-bg-white: #ffffff;
   --color-text: #333333;
@@ -11,16 +16,42 @@
   --color-border: #dde2ea;
   --color-border-light: #eeeeee;
 
+  /* Admin dark */
+  --color-admin-bg: #1a1a2e;
+  --color-admin-card: #16213e;
+  --color-admin-border: #0f3460;
+  --color-admin-accent: #e94560;
+  --color-admin-metric: #4ecca3;
+
+  /* Radius */
   --radius-sm: 6px;
   --radius-md: 12px;
   --radius-lg: 16px;
+  --radius-full: 9999px;
 
+  /* Shadows */
   --shadow-card: 0 1px 3px rgba(0,0,0,0.08);
-  --shadow-hover: 0 2px 8px rgba(0,0,0,0.12);
+  --shadow-hover: 0 4px 12px rgba(0,0,0,0.12);
+  --shadow-elevated: 0 8px 24px rgba(0,0,0,0.16);
 
+  /* Typography */
   --font-sans: system-ui, -apple-system, 'Segoe UI', sans-serif;
   --font-mono: 'SF Mono', 'Cascadia Code', monospace;
 
+  /* Typographic scale */
+  --text-xs: 0.75rem;
+  --text-sm: 0.875rem;
+  --text-base: 1rem;
+  --text-lg: 1.125rem;
+  --text-xl: 1.25rem;
+  --text-2xl: 1.5rem;
+  --text-3xl: 1.875rem;
+  --text-4xl: 2.25rem;
+  --leading-tight: 1.25;
+  --leading-normal: 1.5;
+  --leading-relaxed: 1.75;
+
+  /* Spacing */
   --space-xs: 4px;
   --space-sm: 8px;
   --space-md: 16px;
@@ -28,16 +59,66 @@
   --space-xl: 32px;
   --space-2xl: 48px;
 
+  /* Layout */
   --max-width: 960px;
+  --max-width-narrow: 800px;
   --max-width-wide: 1200px;
+
+  /* Transitions */
+  --transition-fast: 150ms ease;
+  --transition-normal: 250ms ease;
 }
 
+/* Typographic defaults */
+body {
+  font-family: var(--font-sans);
+  font-size: var(--text-base);
+  line-height: var(--leading-normal);
+  color: var(--color-text);
+  -webkit-font-smoothing: antialiased;
+}
+
+h1 { font-size: var(--text-3xl); font-weight: 700; line-height: var(--leading-tight); margin: 0 0 var(--space-md); }
+h2 { font-size: var(--text-2xl); font-weight: 600; line-height: var(--leading-tight); margin: var(--space-lg) 0 var(--space-sm); }
+h3 { font-size: var(--text-xl); font-weight: 600; line-height: var(--leading-tight); margin: var(--space-md) 0 var(--space-sm); }
+h4 { font-size: var(--text-lg); font-weight: 600; margin: var(--space-md) 0 var(--space-xs); }
+
+p { margin: 0 0 var(--space-md); }
+a { color: var(--color-brand); text-decoration: none; }
+a:hover { text-decoration: underline; }
+
+/* Shared components */
+.btn {
+  display: inline-block; padding: 10px 20px; border: none; border-radius: var(--radius-sm);
+  font-size: var(--text-sm); font-weight: 600; cursor: pointer;
+  transition: background var(--transition-fast), transform var(--transition-fast);
+  text-decoration: none; text-align: center;
+}
+.btn-primary { background: var(--color-brand); color: #fff; }
+.btn-primary:hover { background: var(--color-brand-hover); transform: translateY(-1px); }
+.btn-secondary { background: var(--color-bg-white); color: var(--color-text); border: 1px solid var(--color-border); }
+.btn-secondary:hover { border-color: var(--color-brand); color: var(--color-brand); }
+
+.card {
+  background: var(--color-bg-white); border: 1px solid var(--color-border);
+  border-radius: var(--radius-md); padding: var(--space-md);
+  transition: box-shadow var(--transition-fast), border-color var(--transition-fast);
+}
+.card:hover { box-shadow: var(--shadow-hover); border-color: var(--color-brand); }
+
+.input {
+  width: 100%; padding: var(--space-sm); border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm); font-size: var(--text-base); font-family: inherit;
+  box-sizing: border-box; transition: border-color var(--transition-fast);
+}
+.input:focus { outline: none; border-color: var(--color-brand); box-shadow: 0 0 0 3px var(--color-brand-light); }
+
+/* Responsive */
 @media (max-width: 640px) {
   :root {
-    --space-lg: 16px;
-    --space-xl: 24px;
-    --space-2xl: 32px;
-    --max-width: 100%;
-    --max-width-wide: 100%;
+    --space-lg: 16px; --space-xl: 24px; --space-2xl: 32px;
   }
+  h1 { font-size: var(--text-2xl); }
+  h2 { font-size: var(--text-xl); }
+  h3 { font-size: var(--text-lg); }
 }
