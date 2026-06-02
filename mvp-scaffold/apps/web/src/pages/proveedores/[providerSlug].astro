@@ -123,11 +123,7 @@ function formatWaNumber(phone: string): string {
           <p>{provider.description}</p>
 
           {provider.cover_url ? (
-            <img src={provider.cover_url} alt="" style="width:100%; max-height:200px; object-fit:cover; border-radius:12px; margin:12px 0;" />
-          ) : null}
-
-          {provider.cover_url ? (
-            <img src={provider.cover_url} alt="" style="width:100%; max-height:200px; object-fit:cover; border-radius:12px; margin:12px 0;" />
+            <img src={provider.cover_url} alt="" style="width:100%; max-height:200px; object-fit:cover; border-radius:12px; margin:12px 0;" loading="lazy" />
           ) : null}
 
           {provider.website_url ? (

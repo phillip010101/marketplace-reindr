@@ -39,7 +39,17 @@ if (!post) {
           {post.published_at ? new Date(post.published_at).toLocaleDateString('es-CO', { year: 'numeric', month: 'long', day: 'numeric' }) : ''}
         </p>
         <h1>{post.title}</h1>
-        <div style="white-space:pre-wrap;">{post.body}</div>
+        <div style="line-height:1.8; font-size:16px;">
+          <Fragment>
+            {post.body.split('\n\n').map(paragraph => {
+              const p = paragraph.trim();
+              if (p.startsWith('### ')) return <h3>{p.slice(4)}</h3>;
+              if (p.startsWith('## ')) return <h2>{p.slice(3)}</h2>;
+              if (p.startsWith('# ')) return <h1>{p.slice(2)}</h1>;
+              return <p>{p}</p>;
+            })}
+          </Fragment>
+        </div>
       </article>
     </main>
   </body>

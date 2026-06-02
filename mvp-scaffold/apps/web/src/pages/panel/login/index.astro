@@ -25,13 +25,13 @@ const canonicalUrl = `${siteOrigin}/panel/login`;
         <form id="provider-login-form" style="display:grid; gap:10px;">
           <label>
             Email
-            <input type="email" name="email" required />
+            <input type="email" name="email" required style="width:100%; padding:8px; border:1px solid #ddd; border-radius:6px; box-sizing:border-box;" />
           </label>
           <label>
             Password
-            <input type="password" name="password" required />
+            <input type="password" name="password" required style="width:100%; padding:8px; border:1px solid #ddd; border-radius:6px; box-sizing:border-box;" />
           </label>
-          <button type="submit">Entrar al panel</button>
+          <button type="submit" style="padding:10px; background:#0b5d1e; color:#fff; border:none; border-radius:6px; cursor:pointer; font-size:15px;">Entrar al panel</button>
         </form>
 
         <p id="login-status" style="margin:12px 0 0; font-size:14px;"></p>
