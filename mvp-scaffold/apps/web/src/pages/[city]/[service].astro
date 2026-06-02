@@ -112,7 +112,7 @@ const canonicalUrl = `${siteOrigin}/${citySlug}/${serviceSlug}`;
             <textarea name="description" id="desc-field" placeholder="Cuentanos que necesitas: tipo de empaque, cantidad, material, plazo..." rows="4" required style="width:100%; padding:8px; box-sizing:border-box;"></textarea>
             <p class="field-error" id="desc-error">Describe tu necesidad (minimo 10 caracteres).</p>
             <div style="display:flex; justify-content:flex-end; margin-top:8px;">
-              <button type="button" data-next-step="2" style="padding:10px 20px;">Continuar</button>
+              <button type="button" data-next-step="2" style="padding:10px 24px; background:#0b5d1e; color:#fff; border:none; border-radius:6px; cursor:pointer; font-weight:600;">Continuar</button>
             </div>
           </div>
 
@@ -132,8 +132,8 @@ const canonicalUrl = `${siteOrigin}/${citySlug}/${serviceSlug}`;
               </fieldset>
             )}
             <div style="display:flex; justify-content:space-between; gap:8px; margin-top:12px;">
-              <button type="button" data-prev-step="1">Volver</button>
-              <button type="button" data-next-step="3" style="padding:10px 20px;">Continuar</button>
+              <button type="button" data-prev-step="1" style="padding:10px 20px; background:#fff; border:1px solid #ddd; border-radius:6px; cursor:pointer;">Volver</button>
+              <button type="button" data-next-step="3" style="padding:10px 24px; background:#0b5d1e; color:#fff; border:none; border-radius:6px; cursor:pointer; font-weight:600;">Continuar</button>
             </div>
           </div>
 
@@ -165,8 +165,8 @@ const canonicalUrl = `${siteOrigin}/${citySlug}/${serviceSlug}`;
             <p class="field-error" id="consent-error">Debes aceptar ser contactado.</p>
 
             <div style="display:flex; justify-content:space-between; gap:8px; margin-top:12px;">
-              <button type="button" data-prev-step="2">Volver</button>
-              <button type="submit" style="padding:10px 24px; background:#0b5d1e; color:#fff; border:none; border-radius:6px; cursor:pointer; font-size:15px;">Enviar solicitud</button>
+              <button type="button" data-prev-step="2" style="padding:10px 20px; background:#fff; border:1px solid #ddd; border-radius:6px; cursor:pointer;">Volver</button>
+              <button type="submit" style="padding:10px 24px; background:#0b5d1e; color:#fff; border:none; border-radius:6px; cursor:pointer; font-size:15px; font-weight:600;">Enviar solicitud</button>
             </div>
           </div>
         </form>
