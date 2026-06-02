@@ -12,6 +12,13 @@ const canonicalUrl = `${siteOrigin}/panel/registro`;
     <meta name="robots" content="noindex, nofollow" />
     <link rel="canonical" href={canonicalUrl} />
     <meta name="viewport" content="width=device-width" />
+    <style is:inline>
+      .btn{display:inline-block;padding:10px 20px;border:none;border-radius:6px;font-size:.875rem;font-weight:600;cursor:pointer;text-decoration:none;text-align:center;transition:all .15s}
+      .btn-primary{background:#0b5d1e;color:#fff}.btn-primary:hover{filter:brightness(0.9)}
+      .btn-secondary{background:#fff;color:#333;border:1px solid #ddd}
+      .input{width:100%;padding:8px;border:1px solid #ddd;border-radius:6px;font-size:1rem;font-family:inherit;box-sizing:border-box}
+      .input:focus{outline:none;border-color:#0b5d1e;box-shadow:0 0 0 3px rgba(11,93,30,0.1)}
+    </style>
   </head>
   <body style="margin:0; background:#f2f4f7;">
     <main style="min-height:100vh; display:grid; place-items:center; padding:20px; font-family:system-ui,sans-serif;">
@@ -22,26 +29,26 @@ const canonicalUrl = `${siteOrigin}/panel/registro`;
         <form id="register-form" style="display:grid; gap:10px;">
           <label>
             Nombre de tu negocio *
-            <input type="text" name="display_name" required minlength="2" maxlength="120" style="width:100%; padding:8px; border:1px solid #ddd; border-radius:6px; box-sizing:border-box;" />
+            <input type="text" name="display_name" required minlength="2" maxlength="120" class="input" />
           </label>
           <label>
             Email *
-            <input type="email" name="email" required style="width:100%; padding:8px; border:1px solid #ddd; border-radius:6px; box-sizing:border-box;" />
+            <input type="email" name="email" required class="input" />
           </label>
           <label>
             Contraseña *
-            <input type="password" name="password" required minlength="8" style="width:100%; padding:8px; border:1px solid #ddd; border-radius:6px; box-sizing:border-box;" />
+            <input type="password" name="password" required minlength="8" class="input" />
             <small style="opacity:0.6;">Minimo 8 caracteres.</small>
           </label>
           <label>
             Repetir contraseña *
-            <input type="password" name="password_confirm" required minlength="8" style="width:100%; padding:8px; border:1px solid #ddd; border-radius:6px; box-sizing:border-box;" />
+            <input type="password" name="password_confirm" required minlength="8" class="input" />
           </label>
           <label style="font-size:13px; display:flex; align-items:flex-start; gap:6px;">
             <input type="checkbox" name="terms" required style="margin-top:3px;" />
             <span>Acepto los <a href="/terminos" target="_blank" style="color:#0b5d1e;">terminos y condiciones</a> y la <a href="/privacidad" target="_blank" style="color:#0b5d1e;">politica de privacidad</a>.</span>
           </label>
-          <button type="submit" style="padding:10px; background:#0b5d1e; color:#fff; border:none; border-radius:6px; cursor:pointer; font-size:15px;">Crear cuenta y entrar al panel</button>
+          <button type="submit" class="btn btn-primary" style="width:100%; font-size:15px;">Crear cuenta y entrar al panel</button>
         </form>
 
         <p id="register-status" style="margin:12px 0 0; font-size:14px;"></p>
