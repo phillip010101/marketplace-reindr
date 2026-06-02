@@ -199,8 +199,54 @@ function formatWaNumber(phone: string): string {
             <p>Inicia por el servicio principal para enviar una sola solicitud y conectar servicios complementarios.</p>
             <a href={`/${providerCity}/${provider.services?.[0] ?? 'cajas-personalizadas'}`} style="color: var(--provider-accent);">Ir al formulario</a>
           </section>
+
+          <section style="margin-top: 24px; border: 1px solid var(--provider-border); border-radius: 12px; padding: 16px; background: var(--provider-card-bg);">
+            <h2>Dejar una resena</h2>
+            <form id="review-form" style="display:grid; gap:8px;">
+              <select id="review-rating" style="padding:6px; border:1px solid #ccc; border-radius:4px;">
+                <option value="">Selecciona puntuacion</option>
+                <option value="5">★★★★★ (5)</option>
+                <option value="4">★★★★☆ (4)</option>
+                <option value="3">★★★☆☆ (3)</option>
+                <option value="2">★★☆☆☆ (2)</option>
+                <option value="1">★☆☆☆☆ (1)</option>
+              </select>
+              <input id="review-title" placeholder="Titulo de tu resena" style="padding:8px; border:1px solid #ccc; border-radius:4px;" />
+              <textarea id="review-body" placeholder="Cuenta tu experiencia..." rows="3" style="padding:8px; border:1px solid #ccc; border-radius:4px;"></textarea>
+              <button type="submit" style="padding:8px 16px; background:#0b5d1e; color:#fff; border:none; border-radius:6px; cursor:pointer;">Enviar resena</button>
+            </form>
+            <p id="review-status" style="font-size:13px; margin:6px 0 0;"></p>
+          </section>
         </>
       )}
     </main>
+
+    <script is:inline>
+      document.querySelector('#review-form')?.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const rating = (document.querySelector('#review-rating') as HTMLSelectElement)?.value;
+        const title = (document.querySelector('#review-title') as HTMLInputElement)?.value?.trim();
+        const body = (document.querySelector('#review-body') as HTMLTextAreaElement)?.value?.trim();
+        const status = document.querySelector('#review-status');
+        if (!rating || !title || !body) {
+          if (status) { status.textContent = 'Completa todos los campos.'; status.style.color = '#a40000'; }
+          return;
+        }
+        const slug = window.location.pathname.split('/').pop();
+        try {
+          const res = await fetch('/api/providers/' + slug + '/reviews', {
+            method: 'POST', headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ rating: Number(rating), title, body })
+          });
+          const json = await res.json();
+          if (status) {
+            status.textContent = json.ok ? 'Resena enviada. Gracias!' : (json.error?.message || 'Error');
+            status.style.color = json.ok ? '#0b5d1e' : '#a40000';
+          }
+        } catch {
+          if (status) { status.textContent = 'Error de conexion.'; status.style.color = '#a40000'; }
+        }
+      });
+    </script>
   </body>
 </html>

@@ -187,3 +187,37 @@ providersRoute.post('/:slug/view', async (c) => {
   } catch { /* silently ignore tracking errors */ }
   return c.json({ ok: true });
 });
+
+// ── Public Review Submission ─────────────────────────────────────
+
+providersRoute.post('/:slug/reviews', async (c) => {
+  try {
+    const slug = c.req.param('slug').trim().toLowerCase();
+    const body = await c.req.json();
+    const pool = getPool();
+
+    const rating = Number(body?.rating ?? 0);
+    const title = String(body?.title ?? '').trim();
+    const reviewBody = String(body?.body ?? '').trim();
+
+    if (rating < 1 || rating > 5 || !title || !reviewBody) {
+      return c.json({ ok: false, error: { code: 'VALIDATION_ERROR', message: 'Rating (1-5), titulo y cuerpo son requeridos.' } }, 400);
+    }
+
+    const prov = await pool.query<{ id: string }>(
+      `SELECT id FROM providers WHERE slug = $1 AND status = 'active' LIMIT 1`, [slug]
+    );
+    if (prov.rowCount === 0) {
+      return c.json({ ok: false, error: { code: 'NOT_FOUND', message: 'Proveedor no encontrado.' } }, 404);
+    }
+
+    await pool.query(
+      `INSERT INTO reviews (provider_id, rating, title, body, status) VALUES ($1, $2, $3, $4, 'pending')`,
+      [prov.rows[0].id, rating, title, reviewBody]
+    );
+
+    return c.json({ ok: true, data: { message: 'Resena enviada. Sera revisada por un moderador.' } }, 201);
+  } catch {
+    return c.json({ ok: false, error: { code: 'INTERNAL_ERROR', message: 'No fue posible enviar la resena.' } }, 500);
+  }
+});

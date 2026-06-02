@@ -291,16 +291,68 @@ Reglas:
 
 ### GET /api/admin/leads
 ### GET /api/admin/providers
+### POST /api/admin/providers (create provider)
+### PATCH /api/admin/providers/:id (edit provider)
+### POST /api/admin/providers/:id/approve
+### POST /api/admin/providers/:id/suspend
 ### POST /api/admin/services
 ### PATCH /api/admin/services/:id
+### GET /api/admin/services
 ### POST /api/admin/service-relations
 ### PATCH /api/admin/service-relations/:id
-### POST /api/admin/providers/:id/approve
+### DELETE /api/admin/service-relations/:id
 ### POST /api/admin/reviews/:id/moderate
+### GET /api/admin/events
+### POST /api/admin/leads/:opportunityId/reassign
+### POST /api/admin/leads/:opportunityId/mark-invalid
+### GET /api/admin/metrics
+### GET /api/admin/disputes
+### POST /api/admin/disputes/:eventId/resolve
+### GET /api/admin/billing/ledger
+### POST /api/admin/billing/charge/:opportunityId
+### POST /api/admin/billing/refund/:opportunityId
+### GET /api/admin/quotes
+### GET /api/admin/content
+### GET /api/admin/content/:key
+### PUT /api/admin/content/:key
+
+## Rutas provider adicionales
+
+### PUT /api/provider/me/services
+### POST /api/provider/leads/:opportunityId/dispute
+### POST /api/provider/leads/:opportunityId/close
+### GET /api/provider/portfolio
+### POST /api/provider/portfolio
+### DELETE /api/provider/portfolio/:id
+
+## Rutas wallet
+
+### GET /api/provider/wallet
+### POST /api/provider/wallet/topup
+
+## Rutas publicas adicionales
+
+### GET /api/providers/:slug/portfolio
+### POST /api/providers/:slug/reviews
+### POST /api/providers/:slug/view
+### GET /api/services
+### GET /api/locations
+### GET /api/posts
+### GET /api/posts/:slug
+### GET /api/templates
+### GET /api/plans
+### GET /api/plans/me
+### POST /api/plans/me
+### GET /api/content/:key
+
+## Rutas setup
+
+### GET /api/setup/status
+### POST /api/setup/first-admin
 
 ## Rutas futuras
 
-### POST /api/wallet/topup
+### POST /api/wallet/topup (deprecated, use /api/provider/wallet/topup)
 ### POST /api/payments/mercadopago/webhook
 ### POST /api/leads/:id/close-confirmation
 
