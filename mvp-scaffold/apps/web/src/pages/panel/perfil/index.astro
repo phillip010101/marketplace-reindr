@@ -12,7 +12,15 @@ const canonicalUrl = `${siteOrigin}/panel/perfil`;
     <meta name="description" content="Gestion de perfil provider: datos publicos y contacto operativo." />
     <meta name="robots" content="noindex, nofollow" />
     <link rel="canonical" href={canonicalUrl} />
-    <meta name="viewport" content="width=device-width" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <style is:inline>
+      @media (max-width: 640px) {
+        main { padding: 16px 12px !important; }
+        header { flex-direction: column; }
+        nav { display: flex; flex-wrap: wrap; gap: 4px; font-size: 12px; }
+        #template-grid { grid-template-columns: 1fr 1fr !important; }
+      }
+    </style>
   </head>
   <body>
     <main style="max-width: 980px; margin: 0 auto; padding: 40px 20px; font-family: system-ui, sans-serif;">

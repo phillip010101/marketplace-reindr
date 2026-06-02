@@ -81,6 +81,14 @@ function formatWaNumber(phone: string): string {
       {customStyles.headingFont ? `h1, h2, h3 { font-family: ${customStyles.headingFont} !important; }` : ''}
       {customStyles.accentColor ? `h1, h2, h3, a { color: ${customStyles.accentColor} !important; }` : ''}
     </style>
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <style is:inline>
+      @media (max-width: 640px) {
+        main { padding: 24px 12px !important; }
+        h1 { font-size: 1.5rem; }
+        img[style*="max-height:200px"] { max-height: 120px !important; }
+      }
+    </style>
     <script type="application/ld+json" is:inline>
       {JSON.stringify({
         "@context": "https://schema.org",
