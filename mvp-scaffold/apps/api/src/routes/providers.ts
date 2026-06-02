@@ -173,3 +173,17 @@ providersRoute.get('/:id/leads', async (c) => {
     data: []
   });
 });
+
+// ── Page view tracking ──────────────────────────────────────────
+
+providersRoute.post('/:slug/view', async (c) => {
+  try {
+    const slug = c.req.param('slug').trim().toLowerCase();
+    const pool = getPool();
+    const prov = await pool.query<{ id: string }>(`SELECT id FROM providers WHERE slug=$1 AND status='active' LIMIT 1`, [slug]);
+    if (prov.rowCount && prov.rowCount > 0) {
+      await pool.query(`INSERT INTO page_views (provider_id) VALUES ($1)`, [prov.rows[0].id]);
+    }
+  } catch { /* silently ignore tracking errors */ }
+  return c.json({ ok: true });
+});
